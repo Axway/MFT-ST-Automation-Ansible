@@ -25,7 +25,7 @@ FILEDRIVEHOME: "{{ AXWAY_HOME }}/SecureTransport"
 
 #### ST CONFIG PARAMS
 CORE_LICENSE: files/licenses/ST Core Temp.txt
-FEATURES_LICENSE: files/licenses/ST2 Features Temp [PostgreSQL].txt
+FEATURES_LICENSE: files/licenses/2ST2 Features Temp [PostgreSQL].txt
 TMP_ADMIN_PWD: Axway123
 ca_password: password
 ST_USER: axway
