@@ -6,7 +6,7 @@
 ### Purpose
 
 These playbooks are intended to be used:
-* To deploy in Axway's Internal Lab (pCloud)
+* To deploy in TEST environments
 * As a sample 
 
 They have not been tested for production purposes. 
