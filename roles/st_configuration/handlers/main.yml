@@ -1,0 +1,66 @@
+---
+- name: Stop all
+  become: true
+  become_user: axway
+  ansible.builtin.shell:
+    cmd: "sh {{ FILEDRIVEHOME }}/bin/stop_all"
+    executable: /usr/bin/bash
+
+- name: Wait for stop
+  ansible.builtin.wait_for:
+    host: 0.0.0.0
+    port: 8444
+    state: drained
+
+- name: TM pid destroyed
+  ansible.builtin.wait_for:
+    path: "{{ FILEDRIVEHOME }}/var/run/tm.pid"
+    state: absent
+  when:
+    - inventory_hostname in groups["cores"]
+- name: DB pid destroyed
+  ansible.builtin.wait_for:
+    path: "{{ FILEDRIVEHOME }}/var/run/db.pid"
+    state: absent
+  when:
+    - inventory_hostname in groups["edges"]
+- name: ADMIN pid destroyed
+  ansible.builtin.wait_for:
+    path: "{{ FILEDRIVEHOME }}/var/run/admin/tomcat.pid"
+    state: absent
+- name: SSHD pid destroyed
+  ansible.builtin.wait_for:
+    path: "{{ FILEDRIVEHOME }}/var/run/sshd.pid"
+    state: absent
+
+- name: FTPD pid destroyed
+  ansible.builtin.wait_for:
+    path: "{{ FILEDRIVEHOME }}/var/run/ftpd.pid"
+    state: absent
+
+- name: HTTPD pid destroyed
+  ansible.builtin.wait_for:
+    path: "{{ FILEDRIVEHOME }}/var/run/httpd.pid"
+    state: absent
+
+- name: AS2 pid destroyed
+  ansible.builtin.wait_for:
+    path: "{{ FILEDRIVEHOME }}/var/run/as2d.pid"
+    state: absent
+
+- name: Start all
+  become: true
+  become_user: axway
+  ansible.builtin.shell:
+    cmd: "{{ FILEDRIVEHOME }}/bin/start_all"
+    executable: /usr/bin/bash
+  register: start_services
+
+
+- name: Wait for start
+  ansible.builtin.wait_for:
+    host: 0.0.0.0
+    port: 8444
+    delay: 10
+
+# handlers file for st_configuration

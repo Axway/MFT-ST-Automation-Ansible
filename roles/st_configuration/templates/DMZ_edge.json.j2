@@ -1,0 +1,55 @@
+{
+  "name": "Private",
+  "description": "Updated by Ansible",
+  "isDefault": true,
+  "edges": [
+    {
+      "title": "Host",
+      "enabledProxy": false,
+      "deploymentSite": "Prod",
+      "protocols": [
+        {
+          "streamingProtocol": "FTP",
+          "port": 20021,
+          "isEnabled": true,
+          "sslAlias": "streaming"
+        },
+        {
+          "streamingProtocol": "HTTP",
+          "port": 20080,
+          "isEnabled": true,
+          "sslAlias": "streaming"
+        },
+        {
+          "streamingProtocol": "AS2",
+          "port": 21080,
+          "isEnabled": true,
+          "sslAlias": "streaming"
+        },
+        {
+          "streamingProtocol": "SSH",
+          "port": 20022,
+          "isEnabled": true,
+          "sslAlias": "streaming"
+        },
+        {
+          "streamingProtocol": "PESIT",
+          "port": 27617,
+          "isEnabled": true,
+          "sslAlias": "streaming"
+        },
+        {
+          "streamingProtocol": "ADMIN",
+          "port": 20444,
+          "isEnabled": true,
+          "sslAlias": "streaming"
+        }
+      ],
+      "ipAddresses": [
+        {
+          "ipAddress": "{{ hostvars[inventory_hostname]["ansible_fqdn"] }}"
+        }
+      ]
+    }
+  ]
+}

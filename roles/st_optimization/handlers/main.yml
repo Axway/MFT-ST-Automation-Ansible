@@ -1,0 +1,38 @@
+- name: Sync
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/configurations/clusterManagement/operations?operation=synchronize
+    method: POST
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: 204
+    body_format: json
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+    register: _result
+    until: _result.status == 200
+    retries: 720 # 720 * 5 seconds = 1hour (60*60/5)
+    delay: 5 # Every 5 seconds
+- name: stop_all # noqa: name[casing]
+  become: true
+  become_user: axway
+  ansible.builtin.command: "sh {{ FILEDRIVEHOME }}/bin/stop_all"
+  args:
+    chdir: "{{ FILEDRIVEHOME }}/bin/"
+    executable: /bin/bash
+  tags:
+    - debug
+- name: start_all # noqa: name[casing]
+  become: true
+  become_user: axway
+  ansible.builtin.shell: "sh {{ FILEDRIVEHOME }}/bin/start_all"
+  args:
+    chdir: "{{ FILEDRIVEHOME }}/bin/"
+    executable: /bin/bash
+  tags:
+    - debug
+# handlers file for st_optimization

@@ -1,0 +1,40 @@
+# Start scripts configuration should be specified here in the following format:
+# [PROTPCOL_NAME]_[OPTION_NAME]=[value]
+# SSH_JAVA_MEM_MIN=256M
+{% if env_type == 'edge' %}
+{% for svc, option in services_settings.items()  if (option.edge_on |bool and option.protocol is defined) %}
+{{option.protocol}}_JAVA_MEM_MAX={{option.mem_max}}
+{{option.protocol}}_JAVA_MEM_MIN={{option.mem_min}}
+{% endfor %}
+SSH_JAVA_OPTS="-XX:MaxDirectMemorySize=512M $SSH_JAVA_OPTS"
+SSH_JAVA_OPTS="-DsshTransferThreads=256 $SSH_JAVA_OPTS"
+SSH_JAVA_OPTS="-DsshAcceptThreads=256 $SSH_JAVA_OPTS"
+SSH_JAVA_OPTS="-DrecvBufferSize=65535 $SSH_JAVA_OPTS"
+SSH_JAVA_OPTS="-DsendBufferSize=65535 $SSH_JAVA_OPTS"
+SSH_JAVA_OPTS="-Dssh.maxWindowSpace=12582912 $SSH_JAVA_OPTS"
+
+# MAKE SURE THAT ssh.minWindowSpace is not set - NOT SUPPORTED AS OF 5.5-20220728
+{% endif %}
+{% if env_type == 'core' %}
+{% for svc, option in services_settings.items()  if option.core_on|bool and option.protocol is defined %}
+{{option.protocol}}_JAVA_MEM_MAX={{option.mem_max}}
+{{option.protocol}}_JAVA_MEM_MIN={{option.mem_min}}
+{% endfor %}
+TM_JAVA_OPTS="-DAdvancedRouting.camelRuntimesPerCpuCore=2 $TM_JAVA_OPTS"
+TM_JAVA_OPTS="-DAdvancedRouting.minRuntimes=16 $TM_JAVA_OPTS"
+TM_JAVA_OPTS="-DAdvancedRouting.maxRuntimes=32 $TM_JAVA_OPTS"
+TM_JAVA_OPTS="-Dcom.tumbleweed.tm.nfssupport.NFSSupportConfig.enabled=true $TM_JAVA_OPTS"
+TM_JAVA_OPTS="-Dcom.tumbleweed.tm.nfssupport.NFSSupportConfig.retryCount=5 $TM_JAVA_OPTS"
+TM_JAVA_OPTS="-Dcom.tumbleweed.tm.nfssupport.NFSSupportConfig.pauseTime=300 $TM_JAVA_OPTS"
+TM_JAVA_OPTS="-XX:+ExplicitGCInvokesConcurrent $TM_JAVA_OPTS"
+TM_JAVA_OPTS="-XX:MaxDirectMemorySize=512M $TM_JAVA_OPTS"
+TM_JAVA_OPTS="-DStreaming.numberOfConnections=20 $TM_JAVA_OPTS"
+SSH_JAVA_OPTS="-XX:MaxDirectMemorySize=512M $SSH_JAVA_OPTS"
+SSH_JAVA_OPTS="-DsshTransferThreads=256 $SSH_JAVA_OPTS"
+SSH_JAVA_OPTS="-DsshAcceptThreads=256 $SSH_JAVA_OPTS"
+SSH_JAVA_OPTS="-DrecvBufferSize=65535 bytes $SSH_JAVA_OPTS"
+SSH_JAVA_OPTS="-DsendBufferSize=65535 bytes $SSH_JAVA_OPTS"
+SSH_JAVA_OPTS="-Dssh.maxWindowSpace=12582912 bytes $SSH_JAVA_OPTS"
+{% endif %}
+
+

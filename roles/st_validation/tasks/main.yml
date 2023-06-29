@@ -1,0 +1,106 @@
+---
+- name: Get the CORE CA Subject
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/certificates?name=ca
+    method: GET
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [ 200 ]
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - inventory_hostname == "core_primary" or inventory_hostname == "edge_primary"
+  register: own_ca
+  
+- name: Get the remote CA Subject
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/certificates?name=remote_ca
+    method: GET
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [ 200 ]
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - inventory_hostname == "core_primary" or inventory_hostname == "edge_primary"
+  register: remote_ca
+
+- name: Get the streaming cert Subject
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/certificates?name=streaming
+    method: GET
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [ 200 ]
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - inventory_hostname == "core_primary" or inventory_hostname == "edge_primary"
+  register: streaming_cert
+  
+  
+- name: Get the streaming cert Subject
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/configurations/options/Streaming.TrustedAliases?fields=values
+    method: GET
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [ 200 ]
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - inventory_hostname == "core_primary" or inventory_hostname == "edge_primary"
+  register: trusted_aliases
+    
+- name: Set the subjects as vars
+  set_fact:
+    core_ca: "{{ hostvars['core_primary'].own_ca.json.result[0].issuer }}"
+    edge_ca: "{{ hostvars['edge_primary'].own_ca.json.result[0].issuer }}"
+    remote_ca_core: "{{ hostvars['core_primary'].remote_ca.json.result[0].issuer }}"
+    remote_ca_edge: "{{ hostvars['edge_primary'].remote_ca.json.result[0].issuer }}"
+    streaming_cert_core: "{{ hostvars['core_primary'].streaming_cert.json.result[0].issuer }}"
+    streaming_cert_edge: "{{ hostvars['edge_primary'].streaming_cert.json.result[0].issuer }}"
+    streaming_aliases_core: "{{ hostvars['core_primary'].trusted_aliases.json }}"
+    streaming_aliases_edge: "{{ hostvars['edge_primary'].trusted_aliases.json }}"
+    
+- name: print core_ca
+  debug:
+   msg: |
+     These need to match:
+     core_ca: "{{ core_ca }}"
+     remote_ca_edge: "{{ remote_ca_edge }}"
+     streaming_cert_core: "{{ streaming_cert_core }}"
+     
+     These need to match:
+     remote_ca_core: "{{ remote_ca_core }}"
+     streaming_cert_edge: "{{ streaming_cert_edge }}"
+     edge_ca: "{{ edge_ca }}"
+     
+     These both need to contain ca,remote_ca:
+     streaming_aliases_core: "{{ streaming_aliases_core }}"
+     streaming_aliases_edge: "{{ streaming_aliases_edge }}"
+  when:
+    - inventory_hostname == "core_primary"
+
+   
+# tasks file for st_validation

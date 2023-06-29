@@ -1,0 +1,216 @@
+---
+- name: Update the memory allocations on cores
+  become: true
+  become_user: axway
+  vars:
+    - env_type: core
+  ansible.builtin.template:
+    src: STStartScriptsConfig.j2
+    dest: "{{ FILEDRIVEHOME }}/conf/STStartScriptsConfig"
+    owner: axway
+    mode: '0750'
+  when: inventory_hostname in groups["cores"]
+- name: Update the memory allocations on edges
+  become: true
+  become_user: axway
+  vars:
+    - env_type: edge
+  ansible.builtin.template:
+    src: STStartScriptsConfig.j2
+    dest: "{{ FILEDRIVEHOME }}/conf/STStartScriptsConfig"
+    owner: axway
+    mode: '0750'
+  when: inventory_hostname in groups["edges"]
+
+- name: Install lxml
+  ansible.builtin.pip:
+    name: lxml
+    state: present
+- name: Update c3p0.max_size
+  community.general.xml:
+    path: "{{ FILEDRIVEHOME }}/conf/configuration.xml"
+    xpath: "/Configuration/System/{{ item.name }}/Options"
+    attribute: 'hibernate.c3p0.max_size'
+    value: "{{ item.max }}"
+    backup: true
+  loop:
+    "{{ components }}"
+- name: Update c3p0.min_size
+  community.general.xml:
+    path: "{{ FILEDRIVEHOME }}/conf/configuration.xml"
+    xpath: "/Configuration/System/{{ item.name }}/Options"
+    attribute: 'hibernate.c3p0.min_size'
+    value: "{{ item.min }}"
+    backup: true
+  loop:
+    "{{ components }}"
+
+- name: Optimize the embedded DB on the edges
+  ansible.builtin.lineinfile:
+    path: "{{ FILEDRIVEHOME }}/conf/internaldb.conf"
+    regexp: '^(.*){{ item.key }}(.*)$'
+    line: '{{ item.key }}={{ item.value }}'
+    backrefs: true
+    backup: true
+  loop:
+    "{{ lookup('dict', maria_db_tuning) }}"
+  when: inventory_hostname in groups["edges"]
+- name: Optimize the scheduler on cores
+  ansible.builtin.lineinfile:
+    path: "{{ FILEDRIVEHOME }}/conf/scheduler.properties"
+    regexp: '^(.*){{ item.key }}(.*)$'
+    line: '{{ item.key }}={{ item.value }}'
+    backrefs: true
+  loop:
+    "{{ lookup('dict', scheduler_tuning) }}"
+  when: inventory_hostname in groups["cores"]
+
+- name: Update hibernate cache configs
+  community.general.xml:
+    path: "{{ FILEDRIVEHOME }}/conf/hibernate-cache-config.xml"
+    xpath: "/cache-config/caching-scheme-mapping/cache-mapping/cache-name[.='{{ item.key }}']/following-sibling::init-params/init-param/param-value"
+    value: "{{ item.value }}"
+    pretty_print: true
+    backup: true
+  loop:
+    "{{ lookup('dict', hibernate_cache_config) }}"
+  when: inventory_hostname in groups["cores"]
+  tags:
+    - xml
+
+
+- name: Update hibernate cache config for distributed scheme
+  community.general.xml:
+    path: "{{ FILEDRIVEHOME }}/conf/hibernate-cache-config.xml"
+    xpath: "/cache-config/caching-schemes/distributed-scheme/scheme-name[.='accounts-back-tm']/following-sibling::backing-map-scheme/local-scheme/high-units"
+    value: "{{ accounts_back_tm }}"
+    pretty_print: true
+    backup: true
+  when: inventory_hostname in groups["cores"]
+  tags:
+    - xml
+
+- name: Update hibernate cache config for local scheme
+  community.general.xml:
+    path: "{{ FILEDRIVEHOME }}/conf/hibernate-cache-config.xml"
+    xpath: "/cache-config/caching-schemes/local-scheme/scheme-name[.='{{ item.name }}']/following-sibling::high-units"
+    value: "{{ item.value }}"
+    pretty_print: true
+    backup: true
+  when: inventory_hostname in groups["cores"]
+  tags:
+    - xml
+  loop:
+    "{{ accounts_local_tm }}"
+
+- name: Update coherence cache config
+  community.general.xml:
+    path: "{{ FILEDRIVEHOME }}/conf/coherence-cache-config-tm.xml"
+    xpath: "/cache-config/caching-scheme-mapping/cache-mapping/cache-name[.='{{ item.name }}']/following-sibling::init-params/init-param/param-value"
+    value: "{{ item.value }}"
+    pretty_print: true
+    backup: true
+  when: inventory_hostname in groups["cores"]
+  tags:
+    - xml
+  loop:
+    "{{ coherence_cache_config }}"
+
+- name: Update coherence cache config
+  community.general.xml:
+    path: "{{ FILEDRIVEHOME }}/conf/coherence-cache-config-tm.xml"
+    xpath: "/cache-config/caching-scheme-mapping/cache-mapping/cache-name[.='{{ item.name }}']/following-sibling::init-params/init-param/param-value"
+    value: "{{ item.value }}"
+    pretty_print: true
+    backup: true
+  when: inventory_hostname in groups["cores"]
+  tags:
+    - xml
+  loop:
+    "{{ coherence_cache_config }}"
+
+- name: Update ehcache tm config
+  community.general.xml:
+    path: "{{ FILEDRIVEHOME }}/conf/ehcache-tm.xml"
+    xpath: "/ehcache/cache[@name='{{ item.name }}']"
+    backup: true
+    attribute: 'maxElementsInMemory'
+    value: "{{ item.value }}"
+  when: inventory_hostname in groups["cores"]
+  tags:
+    - xml
+  loop:
+    "{{ ehcache_tm_config }}"
+
+- name: Update ehcache tm config - set overflowToDisk
+  community.general.xml:
+    path: "{{ FILEDRIVEHOME }}/conf/ehcache-tm.xml"
+    xpath: "/ehcache/cache[@name='{{ item.name }}']"
+    attribute: 'overflowToDisk'
+    value: "{{ item.overflowToDisk }}"
+    backup: true
+  when: inventory_hostname in groups["cores"]
+  tags:
+    - xml
+  loop:
+    "{{ ehcache_tm_config }}"
+
+- name: Update server configuration parameters for EC
+  vars:
+    - parameter_path: /values
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/configurations/options/{{ item.param_name }}
+    method: PATCH
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [204]
+    body_format: json
+    body: "{{ patch_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - inventory_hostname == "core_primary"
+  tags:
+    - rest_api
+    - test
+  loop:
+    "{{ server_config_core }}"
+  notify:
+    - Sync
+    - stop_all
+    - start_all
+
+- name: Update server configuration parameters for edges
+  vars:
+    - parameter_path: /values
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/configurations/options/{{ item.param_name }}
+    method: PATCH
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [204]
+    body_format: json
+    body: "{{ patch_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - inventory_hostname == "edge_primary"
+  tags:
+    - rest_api
+    - test
+  loop:
+    "{{ server_config_edge }}"
+  notify:
+    - Sync
+    - stop_all
+    - start_all

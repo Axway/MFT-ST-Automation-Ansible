@@ -1,0 +1,75 @@
+{
+  "name": "DMZ",
+  "description": "Created by Ansible",
+  "isDefault": true,
+  "edges": [
+    {
+      "title": "EDGES",
+      "enabledProxy": true,
+      "protocols": [
+       {% if services_settings.ftpd.edge_on %}
+        {
+          "streamingProtocol": "FTP",
+          "port": 20021,
+          "isEnabled": true,
+          "sslAlias": "streaming"
+        },
+       {% endif %}
+       {% if services_settings.httpd.edge_on %}
+        {
+          "streamingProtocol": "HTTP",
+          "port": 20080,
+          "isEnabled": true,
+          "sslAlias": "streaming"
+        },
+        {% endif %}
+        {% if services_settings.as2d.edge_on %}
+        {
+          "streamingProtocol": "AS2",
+          "port": 21080,
+          "isEnabled": true,
+          "sslAlias": "streaming"
+        },
+        {% endif %}
+        {% if services_settings.sshd.edge_on %}
+        {
+          "streamingProtocol": "SSH",
+          "port": 20022,
+          "isEnabled": true,
+          "sslAlias": "streaming"
+        },
+        {% endif %}
+        {% if services_settings.pesitd.edge_on %}
+        {
+          "streamingProtocol": "PESIT",
+          "port": 27617,
+          "isEnabled": true,
+          "sslAlias": "streaming"
+        },
+        {% endif %}
+        {
+          "streamingProtocol": "ADMIN",
+          "port": 20444,
+          "isEnabled": true,
+          "sslAlias": "streaming"
+        }
+      ],
+      "proxies": [
+        {
+          "proxyProtocol": "SOCKS_PROXY",
+          "port": 1080,
+          "isEnabled": true,
+          "isUsePassword": false
+        }
+      ],
+      "ipAddresses": [
+        {
+          "ipAddress": "{{ hostvars["edge_primary"]["ansible_fqdn"] }}"
+        },
+        {
+          "ipAddress": "{{ hostvars["edge_secondary"]["ansible_fqdn"] }}"
+        }
+      ]
+    }
+  ]
+}

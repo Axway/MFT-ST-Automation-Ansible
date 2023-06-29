@@ -1,0 +1,12 @@
+---
+edge_patch_json: "{{ lookup('template', 'edge_patch.json.j2') }}"
+patch_json: "{{ lookup('template', 'patch.json.j2') }}"
+stream_patch_json: "{{ lookup('template', 'stream.patch.json.j2') }}"
+dmz_core_json: "{{ lookup('template', 'DMZ.json.j2') }}"
+dmz_edge_json: "{{ lookup('template', 'DMZ_edge.json.j2') }}"
+loop_patch_json: "{{ lookup('template', 'loop.patch.json.j2') }}"
+remove_patch_json: "{{ lookup('template', 'remove.patch.json.j2') }}"
+userclass_json: "{{ lookup('template', 'post.userclass.json.j2') }}"
+cert_metadata: "{{ lookup('template', 'json_data.json.j2') }}"
+ca_json: "{{ lookup('template', 'ca.json.j2') }}"
+# vars file for st_configuration

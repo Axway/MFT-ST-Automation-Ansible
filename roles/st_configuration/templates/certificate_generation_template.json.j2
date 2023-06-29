@@ -1,0 +1,12 @@
+{
+  "name": "{{ item.name }}",
+  "subject": "CN={{ item.name }}",
+  "type": "x509",
+  "usage": "local",
+  "signAlgorithm": "SHA256withRSA",
+  "keySize": 2048,
+  "validityPeriod": 100000,
+  "overwrite": {{ item.overwrite }},
+  "caPassword": "{{ ca_password }}",
+  "exportPrivateKey": false
+}

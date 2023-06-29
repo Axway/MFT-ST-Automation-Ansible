@@ -1,0 +1,87 @@
+---
+#- name: Download the ST update
+#  become: true
+#  ansible.builtin.get_url:
+#    url: "{{ ST_DOWNLOAD_LINK }}"
+#    dest: "/opt/"
+#    mode: '0755'
+#    group: root
+#    owner: root
+#    validate_certs: false
+- name: Create New Folders
+  become: true
+  ansible.builtin.file:
+    path: "{{ INSTALLER_DIR }}"
+    owner: root
+    group: root
+    mode: '0755'
+    state: directory
+#
+#- name: Download and extract the ST Update
+#  ansible.builtin.unarchive:
+#    src: "{{ ST_DOWNLOAD_LINK }}"
+#    dest: "{{ INSTALLER_DIR }}"
+#    mode: '0755'
+#    group: root
+#    owner: root
+#    validate_certs: false
+#    remote_src: true
+    
+- name: Stop all
+  become: true
+  ansible.builtin.command: "sh {{ FILEDRIVEHOME }}/bin/stop_all"
+  args:
+    chdir: "{{ FILEDRIVEHOME }}/bin/"
+
+- name: Wait for stop
+  ansible.builtin.wait_for:
+    host: 0.0.0.0
+    port: 8444
+    state: drained
+  
+- name: TM pid destroyed
+  ansible.builtin.wait_for:
+    path: "{{ FILEDRIVEHOME }}/var/run/tm.pid"
+    state: absent
+
+- name: DB pid destroyed
+  ansible.builtin.wait_for:
+    path: "{{ FILEDRIVEHOME }}/var/run/db.pid"
+    state: absent
+
+- name: ADMIN pid destroyed
+  ansible.builtin.wait_for:
+    path: "{{ FILEDRIVEHOME }}/var/run/admin/tomcat.pid"
+    state: absent
+
+#- name: Compress Directory contents
+#  become: true
+#  community.general.archive:
+#    path: /opt/axway
+#    dest: "{{ BACKUP_LOCATION }}/backup-{{ ansible_date_time.date }}.tar.gz"
+#    mode: '0755'
+#    format: gz
+#    force_archive: true
+
+#- name: Find the name of UpdateStep1
+#  ansible.builtin.find:
+#    paths: "{{ INSTALLER_DIR }}/UpdateStep1/"
+#    patterns: 'AxwayInstaller-*allOS.jar'
+#  register: step_1
+
+#- name: Execute the script to apply Step 1
+#  command: "sh {{ AXWAY_HOME }}/update.sh -f {{ INSTALLER_DIR }}/UpdateStep1/"
+  
+- name: Execute the script to apply Step 2
+  command: "sh {{ AXWAY_HOME }}/update.sh -f {{ INSTALLER_DIR }}/UpdateStep2/"
+  # "sh {{ FILEDRIVEHOME }}update.sh -f {{ step_1['files'][0]['path'] }}"
+#
+#- name: Find the name of UpdateStep1
+#  ansible.builtin.find:
+#    paths: "{{ INSTALLER_DIR }}/UpdateStep2/"
+#    patterns: 'SecureTransport-Update-5.5*allOS.jar'
+#  register: step_2
+
+#- name: Execute the script
+#  command: "sh {{ step_2['files'][0]['path'] }}"
+## tasks file for st_update

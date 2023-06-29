@@ -1,0 +1,3 @@
+---
+max_connections: 1002
+# defaults file for postgres-config

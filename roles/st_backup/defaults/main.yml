@@ -1,0 +1,4 @@
+backup_mountpoint: /backup
+backup_storage_hostname: twoflower.lab.phx.axway.int
+backup_share: /data/installs/backups
+# defaults file for st_backup

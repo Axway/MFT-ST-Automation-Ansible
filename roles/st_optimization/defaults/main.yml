@@ -1,0 +1,236 @@
+---
+patch_json: "{{ lookup('template', 'patch.json.j2') }}"
+# c3p0 values applicable to MS SQL & PostgreSQL
+components:
+  - name: Database
+    min: 50
+    max: 200
+  - name: Database_AdminComponent
+    min: 20
+    max: 50
+  - name: Database_AS2Component
+    min: 50
+    max: 100
+  - name: Database_SSHDComponent
+    min: 50
+    max: 100
+  - name: Database_FTPDComponent
+    min: 50
+    max: 100
+  - name: Database_HTTPDComponent
+    min: 50
+    max: 100
+  - name: Database_PesitComponent
+    min: 50
+    max: 100
+  - name: Database_TransactionManagerComponent
+    min: 50
+    max: 150
+  - name: Database_TransferLogComponent
+    min: 50
+    max: 150
+  - name: Database_ServerLogComponent
+    min: 50
+    max: 150
+  - name: Database_InstallerComponent
+    min: 20
+    max: 50
+  - name: Database_ToolsComponent
+    min: 20
+    max: 50
+server_config_core:
+  - param_name: TransactionManager.fileIOBufferSizeInKB
+    parameter_value: 64
+  - param_name: TransactionManager.syncFileToDiskEveryKB
+    parameter_value: 64
+  - param_name: TransactionManager.ThreadPools.ThreadPool.EventMonitor.maxThreads
+    parameter_value: 1024
+  - param_name: EventQueue.ThreadPools.ThreadPool.maxThreads
+    parameter_value: 1024
+  - param_name: EventQueue.ThreadPools.AdvancedRouting.maxThreads
+    parameter_value: 1024
+  - param_name: TransactionManager.ThreadPools.ThreadPool.ServerTransfer.maxThreads
+    parameter_value: 1024
+  - param_name: TransactionManager.RuleEngine.pool
+    parameter_value: 512
+  - param_name: EventQueue.SizeLimit.maxQueueSize
+    parameter_value: 10240
+  - param_name: EventQueue.maxClusterBatchSize
+    parameter_value: 20
+  - param_name: OutboundConnections.maxConnectionsPerHost
+    parameter_value: 1500
+  - param_name: Cluster.nodeListRefreshTime
+    parameter_value: 10
+  - param_name: Cluster.Status.heartbeatTimeout
+    parameter_value: 60
+  - param_name: Http.AcceptQueueSize
+    parameter_value: 10000
+  - param_name: Http.Connection.MaxIdleTime
+    parameter_value: 300000
+  - param_name: Http.MaxSimultaneousTransfers
+    parameter_value: 25
+  - param_name: Http.Monitor.IterationCount
+    parameter_value: 10
+  - param_name: Http.Request.MinBandwidth
+    parameter_value: 0
+  - param_name: Http.ThreadPool.MaxThreads
+    parameter_value: 1024
+  - param_name: Http.ThreadPool.MinThreads
+    parameter_value: 128
+  - param_name: Http.ThreadPool.ThreadsIdleTimeMillis
+    parameter_value: 60000
+  - param_name: Ssh.max.pta.wait
+    parameter_value: 2000
+  - param_name: Ssh.maxChannels
+    parameter_value: 30
+  - param_name: Ssh.maxConnections
+    parameter_value: 1500
+  - param_name: As2.Receiver.maxContentLength
+    parameter_value: 200
+  - param_name: As2.Sender.maxContentLength
+    parameter_value: 20
+  - param_name: Server.RetryOnDeadlockCount
+    parameter_value: 12
+  - param_name: Streaming.Event.idleTimeout
+    parameter_value: 600
+  - param_name: OutboundConnections.connectTimeout
+    parameter_value: 60
+  - param_name: OutboundConnections.receiveTimeout
+    parameter_value: 60
+server_config_edge:
+  - param_name: Http.AcceptQueueSize
+    parameter_value: 10000
+  - param_name: Http.Connection.MaxIdleTime
+    parameter_value: 300000
+  - param_name: Http.MaxSimultaneousTransfers
+    parameter_value: 25
+  - param_name: Http.Monitor.IterationCount
+    parameter_value: 10
+  - param_name: Http.Request.MinBandwidth
+    parameter_value: 0
+  - param_name: Http.ThreadPool.MaxThreads
+    parameter_value: 1024
+  - param_name: Http.ThreadPool.MinThreads
+    parameter_value: 128
+  - param_name: Http.ThreadPool.ThreadsIdleTimeMillis
+    parameter_value: 60000
+  - param_name: Ssh.max.pta.wait
+    parameter_value: 2000
+  - param_name: Ssh.maxChannels
+    parameter_value: 30
+  - param_name: Ssh.maxConnections
+    parameter_value: 300
+  - param_name: As2.Receiver.maxContentLength
+    parameter_value: 200
+  - param_name: As2.Sender.maxContentLength
+    parameter_value: 200
+  - param_name: Socks.Idle.Timeout
+    parameter_value: 7200000
+
+maria_db_tuning:
+  max_connections: 1500
+  table_open_cache: 1024
+  innodb_log_buffer_size: 64M
+
+scheduler_tuning:
+  org.quartz.dataSource.DS.maxConnections: 600
+  org.quartz.threadPool.threadCount: 5
+  org.quartz.threadPool.threadPriority: 5
+
+hibernate_cache_config:
+  org.hibernate.cache.*: 20000
+  SiteCache: 1000
+  CustomAttributesCache: 100000
+  DataTransformationCache: 800
+  SubscriptionCache: 10000
+  TransferConfigurationCache: 800
+  ApplicationCache: 150
+  ConfigurationCache: 45000
+  ConfigurationProfileCache: 100
+  RouteCache: 10000
+  AddressBookSourceCache: 5000
+  org.hibernate.cache.spi.UpdateTimestampsCache: 50
+
+accounts_back_tm: '10000'
+
+accounts_local_tm:
+  - name: accounts-properties-local
+    value: '{size-limit 4234}'
+  - name: accounts-local-tm
+    value: '{size-limit 10000}'
+
+coherence_cache_config:
+  - name: SiteCache
+    value: '5000'
+  - name: AccountLocalKeyCache
+    value: '5000'
+  - name: AccountLocalPGPKeyCache
+    value: '2000'
+  - name: CustomAttributesCache
+    value: '100000'
+  - name: DataTransformationCache
+    value: '20000'
+  - name: SubscriptionCache
+    value: '10000'
+  - name: TransferConfigurationCache
+    value: '10000'
+  - name: LocalKeyCache
+    value: '10'
+  - name: LoginCertificateCache
+    value: '5000'
+  - name: TrustedCACertificateCache
+    value: '200'
+  - name: PartnerPGPKeyCache
+    value: '4500'
+  - name: ApplicationCache
+    value: '2000'
+  - name: RouteCache
+    value: '10000'
+  - name: CertificateReferenceCache
+    value: '10000'
+  - name: AddressBookSourceCache
+    value: '5000'
+
+ehcache_tm_config:
+  - name: AccountCache
+    value: '15000'
+    overflowToDisk: 'false'
+  - name: CertificateReferenceCache
+    value: '10000'
+    overflowToDisk: 'false'
+  - name: CustomAttributesCache
+    value: '100000'
+    overflowToDisk: 'false'
+  - name: DataTransformationCache
+    value: '20000'
+    overflowToDisk: 'false'
+  - name: SiteCache
+    value: '5000'
+    overflowToDisk: 'false'
+  - name: SubscriptionCache
+    value: '10000'
+    overflowToDisk: 'false'
+  - name: TransferConfigurationCache
+    value: '20000'
+    overflowToDisk: 'false'
+  - name: ApplicationCache
+    value: '2000'
+    overflowToDisk: 'false'
+  - name: org.hibernate.cache.spi.UpdateTimestampsCache
+    value: '50000'
+    overflowToDisk: 'false'
+  - name: RouteCache
+    value: '5000'
+    overflowToDisk: 'false'
+  - name: TrustedCACertificateCache
+    value: '200'
+    overflowToDisk: 'false'
+  - name: LoginCertificateCache
+    value: '5000'
+    overflowToDisk: 'false'
+  - name: AccountLocalKeyCache
+    value: '5000'
+    overflowToDisk: 'false'
+  - name: AddressBookSourceCache
+    value: '5000'
+    overflowToDisk: 'false'

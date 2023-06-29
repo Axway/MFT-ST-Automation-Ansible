@@ -1,0 +1,3 @@
+---
+# vars file for st_optimization
+patch_json: "{{ lookup('template', 'patch.json.j2') }}"

@@ -1,0 +1,6 @@
+[
+  {
+    "op": "remove",
+    "path": "/values/{{ lookup('ansible.utils.index_of', result.json['values'], 'regex', '/opt') }}"
+  }
+]

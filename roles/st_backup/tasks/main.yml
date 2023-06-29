@@ -1,0 +1,136 @@
+- name: Make sure the folder for the backup mountpoint exists
+  ansible.builtin.file:
+    path: "{{ backup_mountpoint }}"
+    owner: root
+    group: root
+    mode: '0777'
+    state: directory
+  when:
+    - inventory_hostname not in groups["storage"]
+  tags:
+    - db_backup
+
+- name: Mount an NFS volume for shared folders
+  ansible.posix.mount:
+    src: "{{ backup_storage_hostname }}:{{ backup_share }}"
+    path: "{{ backup_mountpoint }}"
+    opts: rw,vers=3,sync,actimeo=1,rsize=1048576,wsize=1048576
+    # Make sure no_wdelay, no_root_squash are options in /etc/exports
+    state: mounted
+    fstype: nfs
+    backup: true
+  when:
+    - inventory_hostname not in groups["storage"]
+  tags:
+    - db_backup
+- name: Stop all
+  become: true
+  become_user: axway
+  ansible.builtin.shell:
+    cmd: "sh {{ FILEDRIVEHOME }}/bin/stop_all"
+    executable: /usr/bin/bash
+  when:
+    - inventory_hostname in groups["ST_NODES"]
+
+- name: Wait for stop
+  ansible.builtin.wait_for:
+    host: 0.0.0.0
+    port: 8444
+    state: drained
+  when:
+    - inventory_hostname in groups["ST_NODES"]
+- name: TM pid destroyed
+  ansible.builtin.wait_for:
+    path: "{{ FILEDRIVEHOME }}/var/run/tm.pid"
+    state: absent
+  when:
+    - inventory_hostname in groups["cores"]
+- name: DB pid destroyed
+  ansible.builtin.wait_for:
+    path: "{{ FILEDRIVEHOME }}/var/run/db.pid"
+    state: absent
+  when:
+    - inventory_hostname in groups["edges"]
+- name: ADMIN pid destroyed
+  ansible.builtin.wait_for:
+    path: "{{ FILEDRIVEHOME }}/var/run/admin/tomcat.pid"
+    state: absent
+  when:
+    - inventory_hostname in groups["ST_NODES"]
+
+- name: SSHD pid destroyed
+  ansible.builtin.wait_for:
+    path: "{{ FILEDRIVEHOME }}/var/run/sshd.pid"
+    state: absent
+  when:
+    - inventory_hostname in groups["ST_NODES"]
+    
+- name: FTPD pid destroyed
+  ansible.builtin.wait_for:
+    path: "{{ FILEDRIVEHOME }}/var/run/ftpd.pid"
+    state: absent
+  when:
+    - inventory_hostname in groups["ST_NODES"]
+    
+- name: HTTPD pid destroyed
+  ansible.builtin.wait_for:
+    path: "{{ FILEDRIVEHOME }}/var/run/httpd.pid"
+    state: absent
+  when:
+    - inventory_hostname in groups["ST_NODES"]
+
+- name: AS2 pid destroyed
+  ansible.builtin.wait_for:
+    path: "{{ FILEDRIVEHOME }}/var/run/as2d.pid"
+    state: absent
+  when:
+    - inventory_hostname in groups["ST_NODES"]
+    
+- name: Get running ST processes
+  ansible.builtin.shell: "ps -ef | grep -v grep | grep -w SecureTransport | awk '{print $2}'"
+  register: running_processes
+  when:
+    - inventory_hostname in groups["ST_NODES"]
+
+- name: Kill running ST processes
+  ansible.builtin.shell: "kill {{ item }}"
+  with_items: "{{ running_processes.stdout_lines }}"
+  when:
+    - inventory_hostname in groups["ST_NODES"]
+
+- name: Wait for the process to disappear
+  ansible.builtin.wait_for:
+    path: "/proc/{{ item }}/status"
+    state: absent
+  with_items: "{{ running_processes.stdout_lines }}"
+  ignore_errors: true
+  register: killed_processes
+  when:
+    - inventory_hostname in groups["ST_NODES"]
+
+- name: Force kill stuck processes
+  ansible.builtin.shell: "kill -9 {{ item }}"
+  with_items: "{{ killed_processes.results | select('failed') | map(attribute='item') | list }}"
+  when:
+    - inventory_hostname in groups["ST_NODES"]
+- name: Compress Directory contents
+  community.general.archive:
+    path: "{{ AXWAY_HOME }}"
+    dest: "{{ backup_mountpoint }}/backup-{{ inventory_hostname }}-{{ ansible_date_time.date }}.tar.gz"
+    mode: '0755'
+    format: gz
+    force_archive: true
+  when:
+    - inventory_hostname in groups["ST_NODES"]
+- name: "Back up the database"
+  postgresql_db:
+    state: dump
+    name: "{{ DB_NAME }}"
+    target: "{{ backup_mountpoint }}/backup-{{ inventory_hostname }}-{{ ansible_date_time.date }}.tar.gz"
+  become: true
+  become_user: postgres
+  tags:
+    - db_backup
+  when:
+    - inventory_hostname == "postgres_db"
+# tasks file for st_backup

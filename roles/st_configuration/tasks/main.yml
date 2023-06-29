@@ -1,0 +1,1103 @@
+- name: Configure edge sync
+  become: true
+  become_user: axway
+  ansible.builtin.template:
+    src: servers.j2
+    dest: "{{ AXWAY_HOME }}/SecureTransport/lib/admin/config/servers"
+    mode: '0700'
+  when: inventory_hostname in groups["edges"]
+  tags:
+    - before_exchange
+- name: Create sentinel_primary for Edge Sync
+  ansible.builtin.file:
+    path: "{{ AXWAY_HOME }}/SecureTransport/var/tmp/sentinel_primary"
+    state: touch
+    owner: axway
+    group: axway
+    mode: '0755'
+  when:
+    - inventory_hostname == "edge_primary"
+  tags:
+    - before_exchange
+
+- name: Install Core License
+  ansible.builtin.copy:
+    src: "{{ CORE_LICENSE }}"
+    dest: "{{ AXWAY_HOME }}/SecureTransport/conf/filedrive.license"
+    owner: axway
+    group: axway
+    mode: '0755'
+  tags:
+    - before_exchange
+- name: Install Features License
+  ansible.builtin.copy:
+    src: "{{ FEATURES_LICENSE }}"
+    dest: "{{ AXWAY_HOME }}/SecureTransport/conf/st.license"
+    owner: axway
+    group: axway
+    mode: '0755'
+  tags:
+    - before_exchange
+
+- name: Assign memory to the admin service to make configuration easier
+  become: true
+  become_user: axway
+  ansible.builtin.lineinfile:
+    path: "{{ FILEDRIVEHOME }}/conf/STStartScriptsConfig"
+    regexp: '^ADMIN_JAVA_MEM_MAX='
+    line: ADMIN_JAVA_MEM_MAX=2048M
+  tags:
+    - before_exchange
+
+- name: Assign min memory to the admin service to make configuration easier
+  become: true
+  become_user: axway
+  ansible.builtin.lineinfile:
+    path: "{{ FILEDRIVEHOME }}/conf/STStartScriptsConfig"
+    regexp: '^ADMIN_JAVA_MEM_MIN='
+    line: ADMIN_JAVA_MEM_MIN=512M
+  tags:
+    - before_exchange
+
+- name: Stop admin
+  become: true
+  become_user: axway
+  ansible.builtin.command: "sh {{ FILEDRIVEHOME }}/bin/stop_admin"
+  args:
+    chdir: "{{ FILEDRIVEHOME }}/bin/"
+  tags:
+    - before_exchange
+
+- name: Wait for port 8444 of any IP to close active connections
+  ansible.builtin.wait_for:
+    host: 0.0.0.0
+    port: 8444
+    state: drained
+  tags:
+    - before_exchange
+
+- name: Start admin
+  become: true
+  become_user: axway
+  ansible.builtin.shell:
+    cmd: "{{ FILEDRIVEHOME }}/bin/start_admin"
+    executable: /usr/bin/bash
+  tags:
+    - before_exchange
+
+- name: Wait for port 8000 to become open on the host, don't start checking for 10 seconds
+  ansible.builtin.wait_for:
+    host: 0.0.0.0
+    port: 8444
+    delay: 10
+    timeout: 600
+  tags:
+    - before_exchange
+# Pause few seconds for logs to roll with initialization of Tomcat
+- name: Pause for 30 seconds to give tomcat a chance to start
+  ansible.builtin.pause:
+    seconds: 30
+
+# Tail the log 15 times with 20 second interval looking for Server startup (300 secs)
+- name: Tail catalina.out to ensure server startup
+  ansible.builtin.command: "tail -n 75 {{ FILEDRIVEHOME }}/tomcat/admin/logs/catalina.out"
+  register: catalina_tail
+  until: catalina_tail.stdout is search('Server startup')
+  retries: 15
+  delay: 20
+  changed_when: "'Server startup' in catalina_tail.stdout"
+  ignore_errors: true
+
+- name: Test admin:admin login
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/myself
+    method: POST
+    validate_certs: false
+    user: admin
+    password: admin
+    status_code: [200, 202, 401]
+    force_basic_auth: true
+    body_format: json
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+  tags:
+    - ddd
+  register: _setup_login_output
+
+
+- name: Update the admin password from contents of local file
+  vars:
+    admin_passwd_patch: "{{ lookup('template', 'passwordChange.json.j2') }}"
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/myself
+    method: PATCH
+    validate_certs: false
+    user: admin
+    password: admin
+    force_basic_auth: true
+    return_content: true
+    status_code: 204
+    timeout: 60
+    body_format: json
+    body: "{{ admin_passwd_patch }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+  when:
+    - "'Logged' in _setup_login_output.json.message"
+    - inventory_hostname == "edge_primary" or inventory_hostname == "core_primary"
+  tags:
+    - rest_api
+
+
+- name: Sync the edges before configuration
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/configurations/clusterManagement/operations?operation=synchronize
+    method: POST
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: 204
+    body_format: json
+    timeout: 120
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  register: _result
+  until: _result.status > 199
+  retries: 3
+  delay: 120 # Every 2 minutes
+  when:
+    - inventory_hostname == "edge_primary"
+  tags:
+    - sync
+
+
+- name: Generate the internal CA
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/certificates
+    method: POST
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: 201
+    timeout: 60
+    body_format: json
+    body: "{{ ca_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - inventory_hostname == "edge_primary" or inventory_hostname == "core_primary"
+  register: ca
+  tags:
+    - certificates
+  until: ca.status == 201
+  retries: 3
+  delay: 60 # Every minute
+
+
+- name: Persist the CA ID for the exchange later
+  ansible.builtin.set_fact:
+    ca_cert_id: "{{ ca.location | urlsplit('path') | basename }}"
+  tags:
+    - ca_json
+    - certificates
+  when:
+    - inventory_hostname == "edge_primary" or inventory_hostname == "core_primary"
+
+
+- name: Get current certificates
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/certificates?fields=name&usage=local
+    method: GET
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    timeout: 60
+    status_code: 200
+    body_format: json
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - inventory_hostname == "edge_primary" or inventory_hostname == "core_primary"
+  register: current_certs
+  until: current_certs.status == 200
+  retries: 3 # 3 * 60 seconds
+  delay: 60 # Every 60 seconds
+  tags:
+    - certificates2
+
+- name: Get remote_ca certificates
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/certificates?fields=name&type=x509&usage=trusted&name=remote_ca
+    method: GET
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    timeout: 60
+    status_code: 200
+    body_format: json
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - inventory_hostname == "edge_primary" or inventory_hostname == "core_primary"
+  register: current_remote_ca
+  until: current_remote_ca.status == 200
+  retries: 3 # 3 * 60 seconds
+  delay: 60 # Every 60 seconds
+  tags:
+    - certificates
+
+
+- name: Assign cert status
+  ansible.builtin.set_fact:
+    current_cert_list: "{{ current_certs.json.result | map('dict2items') | list | flatten | json_query('[?key==`name`].value') | flatten }}"
+  tags:
+    - certificates
+  when:
+    - inventory_hostname == "edge_primary" or inventory_hostname == "core_primary"
+
+
+- name: Get the Stfs.Encryption.CertAlias value
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/configurations/options/Stfs.Encryption.CertAlias
+    method: GET
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: 200
+    timeout: 60
+    body_format: json
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - inventory_hostname == "core_primary"
+  register: repencrypt_value
+  tags:
+    - certificates
+
+- name: Read repencrypt value
+  ansible.builtin.debug:
+    msg: "{{ repencrypt_value.json['values'] }}"
+  when:
+    - inventory_hostname == "core_primary"
+  tags:
+    - certificates
+
+
+- name: Generate core certs that were not present
+  vars:
+    overwrite_status: false
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/certificates
+    method: POST
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [200, 201]
+    timeout: 60
+    body_format: json
+    body: "{{ post_cert_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  register: result
+  loop:
+    '{{ generate_certs_core }}'
+  when:
+    - inventory_hostname == "core_primary"
+    - item.name not in current_cert_list
+  tags:
+    - certificates
+
+
+- name: Re-generate core certs that were  present
+  vars:
+    overwrite_status: true
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/certificates
+    method: POST
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [200, 201]
+    timeout: 60
+    body_format: json
+    body: "{{ post_cert_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  register: result
+  loop:
+    '{{ generate_certs_core }}'
+  when:
+    - inventory_hostname == "core_primary"
+    - item.name in current_cert_list
+    - item.name not in repencrypt_value.json['values']
+  tags:
+    - certificates
+
+- name: Generate edge certs that were not present
+  vars:
+    overwrite_status: false
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/certificates
+    method: POST
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [200, 201]
+    timeout: 60
+    body_format: json
+    body: "{{ post_cert_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  register: result
+  loop:
+    '{{ generate_certs_edge }}'
+  when:
+    - inventory_hostname == "edge_primary"
+    - item.name not in current_cert_list
+  tags:
+    - certificates
+
+
+- name: Re-generate edge certs that were present
+  vars:
+    overwrite_status: true
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/certificates
+    method: POST
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    timeout: 60
+    status_code: [200, 201]
+    body_format: json
+    body: "{{ post_cert_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  register: result
+  loop:
+    '{{ generate_certs_edge }}'
+  when:
+    - inventory_hostname == "edge_primary"
+    - item.name in current_cert_list
+  tags:
+    - certificates
+
+
+- name: Create DMZ for streaming on core
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/zones
+    method: POST
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [201, 400]
+    timeout: 60
+    body_format: json
+    body: "{{ dmz_core_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - inventory_hostname == "core_primary"
+  tags:
+    - rest_api
+    - DMZ2
+
+- name: Update edge DMZ
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/zones/Private
+    method: PUT
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [204, 400]
+    timeout: 60
+    body_format: json
+    body: "{{ dmz_edge_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - inventory_hostname == "edge_primary" or inventory_hostname == "edge_secondary"
+  tags:
+    - rest_api
+    - DMZ
+- name: Configure the allowed ST servers
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/configurations/allowedSTServers
+    method: PATCH
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    status_code: 204
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    body_format: json
+    body: "{{ edge_patch_json }}"
+  when:
+    - inventory_hostname == "edge_primary"
+  tags:
+    - rest_api
+    - allowed
+
+- name: Configure the Streaming Trusted aliases
+  vars:
+    - parameter_path: /values
+    - parameter_value: remote_ca
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/configurations/options/Streaming.TrustedAliases
+    validate_certs: false
+    method: PATCH
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: false
+    status_code: [204]
+    timeout: 120
+    body_format: json
+    body: "{{ stream_patch_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - inventory_hostname == "edge_primary" or inventory_hostname == "core_primary"
+  tags:
+    - check
+    - REST
+
+- name: Assign the HTTPS certificate
+  vars:
+    - parameter_path: /certificateAlias
+    - parameter_value: services
+    - srv_name: Http Default
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/servers/{{ srv_name | urlencode() }}
+    method: PATCH
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [204]
+    timeout: 120
+    body_format: json
+    body: "{{ patch_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - (inventory_hostname == "edge_primary" and services_settings.httpd.edge_on |bool ) or
+       (inventory_hostname == "core_primary" and services_settings.httpd.core_on |bool )
+  tags:
+    - check
+    - certificates
+- name: Assign the FTPS certificate
+  vars:
+    - parameter_path: /certificateAlias
+    - parameter_value: services
+    - srv_name: Ftp Default
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/servers/{{ srv_name | urlencode() }}
+    method: PATCH
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [204]
+    timeout: 60
+    body_format: json
+    body: "{{ patch_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - (inventory_hostname == "edge_primary" and services_settings.ftpd.edge_on |bool ) or
+      (inventory_hostname == "core_primary" and services_settings.ftpd.core_on |bool )
+  tags:
+    - certificates
+
+
+- name: Assign the AS2 certificate
+  vars:
+    - parameter_path: /keyAlias
+    - parameter_value: services
+    - srv_name: As2 Default
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/servers/{{ srv_name | urlencode() }}
+    method: PATCH
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [204]
+    timeout: 60
+    body_format: json
+    body: "{{ patch_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - (inventory_hostname == "edge_primary" and services_settings.as2d.edge_on |bool ) or
+       (inventory_hostname == "core_primary" and services_settings.as2d.core_on |bool )
+  tags:
+    - certificates
+
+- name: Assign the SFTP certificate
+  vars:
+    - parameter_path: /certificateAlias
+    - parameter_value: services
+    - srv_name: Ssh Default
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/servers/{{ srv_name | urlencode() }}
+    method: PATCH
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [204]
+    timeout: 60
+    body_format: json
+    body: "{{ patch_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - (inventory_hostname == "edge_primary" and services_settings.sshd.edge_on |bool ) or
+      (inventory_hostname == "core_primary" and services_settings.sshd.core_on |bool )
+  tags:
+    - certificates
+
+- name: Assign the PeSIT certificate
+  vars:
+    - parameter_path: /pesitKeyAlias
+    - parameter_value: services
+    - srv_name: Pesit Default
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/servers/{{ srv_name | urlencode() }}
+    method: PATCH
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [204]
+    timeout: 60
+    body_format: json
+    body: "{{ patch_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - (inventory_hostname == "edge_primary" and services_settings.pesitd.edge_on |bool ) or
+      (inventory_hostname == "core_primary" and services_settings.pesitd.core_on |bool )
+  tags:
+    - certificates
+
+# ENABLE THE SERVICES
+- name: Enable the FTP server
+  vars:
+    - parameter_path: /isFtpEnabled
+    - parameter_value: true
+    - srv_name: Ftp Default
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/servers/{{ srv_name | urlencode() }}
+    method: PATCH
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [204]
+    timeout: 60
+    body_format: json
+    body: "{{ patch_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - (inventory_hostname == "edge_primary" and services_settings.ftpd.edge_on |bool ) or
+      (inventory_hostname == "core_primary" and services_settings.ftpd.core_on |bool )
+
+- name: Enable FTPS
+  vars:
+    - parameter_path: /isFtpsEnabled
+    - parameter_value: true
+    - srv_name: Ftp Default
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/servers/{{ srv_name | urlencode() }}
+    method: PATCH
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [204]
+    body_format: json
+    timeout: 60
+    body: "{{ patch_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - (inventory_hostname == "edge_primary" and services_settings.ftpd.edge_on |bool ) or
+      (inventory_hostname == "core_primary" and services_settings.ftpd.core_on |bool )
+
+- name: Enable the HTTP server
+  vars:
+    - parameter_path: /isHttpsEnabled
+    - parameter_value: true
+    - srv_name: Http Default
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/servers/{{ srv_name | urlencode() }}
+    method: PATCH
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [204]
+    timeout: 60
+    body_format: json
+    body: "{{ patch_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - (inventory_hostname == "edge_primary" and services_settings.httpd.edge_on |bool ) or
+      (inventory_hostname == "core_primary" and services_settings.httpd.core_on |bool )
+
+- name: Enable AS2
+  vars:
+    - parameter_path: /sslListenerEnabled
+    - parameter_value: true
+    - srv_name: As2 Default
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/servers/{{ srv_name | urlencode() }}
+    method: PATCH
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [204]
+    timeout: 60
+    body_format: json
+    body: "{{ patch_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - (inventory_hostname == "edge_primary" and services_settings.as2d.edge_on |bool ) or
+      (inventory_hostname == "core_primary" and services_settings.as2d.core_on |bool )
+
+- name: Enable SFTP
+  vars:
+    - parameter_path: /isSftpEnabled
+    - parameter_value: true
+    - srv_name: Ssh Default
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/servers/{{ srv_name | urlencode() }}
+    method: PATCH
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [204]
+    timeout: 60
+    body_format: json
+    body: "{{ patch_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - (inventory_hostname == "edge_primary" and services_settings.sshd.edge_on |bool ) or
+      (inventory_hostname == "core_primary" and services_settings.sshd.core_on |bool )
+
+- name: Enable PESIT
+  vars:
+    - parameter_path: /isPesitSslEnabled
+    - parameter_value: true
+    - srv_name: Pesit Default
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/servers/{{ srv_name | urlencode() }}
+    method: PATCH
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [204]
+    timeout: 60
+    body_format: json
+    body: "{{ patch_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+  when:
+    - (inventory_hostname == "edge_primary" and services_settings.pesitd.edge_on |bool ) or
+      (inventory_hostname == "core_primary" and services_settings.pesitd.core_on |bool )
+
+
+# CUSTOMER SPECIFIC - TO REMOVE
+- name: Enable the HTTP server
+  vars:
+    - parameter_path: /isHttpEnabled
+    - parameter_value: true
+    - srv_name: Http Default
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/servers/{{ srv_name | urlencode() }}
+    method: PATCH
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [204]
+    timeout: 60
+    body_format: json
+    body: "{{ patch_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - (inventory_hostname == "edge_primary" and services_settings.httpd.edge_on |bool ) or
+      (inventory_hostname == "core_primary" and services_settings.httpd.core_on |bool )
+
+- name: Update customer specific configuration parameters on core
+  vars:
+    - parameter_path: /values
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/configurations/options/{{ item.param_name }}
+    method: PATCH
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [204]
+    timeout: 60
+    body_format: json
+    body: "{{ loop_patch_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - inventory_hostname == "core_primary"
+  tags:
+    - rest_api
+  loop:
+    "{{ customer_specific_config_core }}"
+
+- name: Get the array number of opt so we can remove it
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/configurations/options/UnsafePaths
+    method: GET
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    timeout: 60
+    status_code: [200]
+    body_format: json
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - inventory_hostname == "core_primary"
+  tags:
+    - rest_api
+  register: result
+
+- name: If /opt is in the array, go ahead and remove it
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/configurations/options/UnsafePaths
+    method: PATCH
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [204]
+    timeout: 60
+    body_format: json
+    body: "{{ remove_patch_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - inventory_hostname == "core_primary"
+    - '"/opt/" in result.json["values"]'
+  tags:
+    - rest_api
+- name: Get the EncryptClass user class if it exists
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/userClasses?className=EncryptClass
+    method: GET
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [200]
+    timeout: 60
+    body_format: json
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - inventory_hostname == "core_primary"
+  tags:
+    - rest_api
+  register: userClass
+
+
+- name: Create the EncryptClass if it doesn't exist
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/userClasses
+    method: POST
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [201]
+    timeout: 60
+    body_format: json
+    body: "{{ userclass_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - inventory_hostname == "core_primary"
+    - userClass.json['resultSet']['returnCount'] == 0
+  tags:
+    - rest_api
+
+- name: Set the overwrite to true if current_remote_ca.json.result exists
+  ansible.builtin.set_fact:
+    remote_ca_overwrite: true
+  when:
+    - inventory_hostname == "core_primary" or inventory_hostname == "edge_primary"
+    - current_remote_ca.json.result | length > 0
+    - '"remote_ca" in current_remote_ca.json.result[0]["name"]'
+  tags:
+    - certificates
+
+- name: Set the overwrite to false if current_remote_ca.json.result does not exist
+  ansible.builtin.set_fact:
+    remote_ca_overwrite: false
+  when:
+    - inventory_hostname == "core_primary" or inventory_hostname == "edge_primary"
+    - current_remote_ca.json.result.0 is not defined
+  tags:
+    - certificates2
+- name: Get the new CAs
+  become: false
+  ansible.builtin.uri:
+    url: "https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/\
+    certificates/{{ ca_cert_id }}/operations?operation=export&format=pem&includePath=false"
+    method: POST
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [200]
+    timeout: 60
+    dest: files/certs/{{ inventory_hostname }}.pem
+    body_format: form-multipart
+    body:
+      request_payload:
+        content: 'exportPassword='
+    headers:
+      Content-Type: multipart/form-data
+      Accept: application/octet-stream
+      idp_id: ST_IDP
+  when:
+    - inventory_hostname == "core_primary" or inventory_hostname == "edge_primary"
+  tags:
+    - rest_api
+    - certificates2
+  delegate_to: localhost
+
+- name: Import remote_ca from edge to core server
+  vars:
+    overwrite_status: "{{ remote_ca_overwrite }}"
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/certificates
+    method: POST
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [200, 201]
+    timeout: 60
+    body: |
+
+      --BOUNDARY
+      Content-Type: application/json
+
+      {{ lookup('template', 'json_data.json.j2') | to_nice_json }}
+      --BOUNDARY
+      Content-Type: application/octet-stream
+      Content-Disposition: attachment; filename="cert.pem"
+
+      {{ lookup('ansible.builtin.file', 'files/certs/edge_primary.pem') }}
+
+      --BOUNDARY--
+    headers:
+      Content-Type: multipart/mixed; boundary=BOUNDARY
+      Accept: application/json
+      idp_id: ST_IDP
+      Referer: Ansible
+  when:
+    - inventory_hostname == "core_primary"
+  tags:
+    - rest_api
+    - certificates2
+- name: Import remote_ca from core to edge server
+  vars:
+    overwrite_status: "{{ remote_ca_overwrite }}"
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/certificates
+    method: POST
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [200, 201]
+    timeout: 60
+    body: |
+
+      --BOUNDARY
+      Content-Type: application/json
+
+      {{ lookup('template', 'json_data.json.j2') | to_nice_json }}
+      --BOUNDARY
+      Content-Type: application/octet-stream
+      Content-Disposition: attachment; filename="cert.pem"
+
+      {{ lookup('ansible.builtin.file', 'files/certs/core_primary.pem') }}
+
+      --BOUNDARY--
+    headers:
+      Content-Type: multipart/mixed; boundary=BOUNDARY
+      Accept: application/json
+      idp_id: ST_IDP
+      Referer: Ansible
+  when:
+    - inventory_hostname == "edge_primary"
+  tags:
+    - rest_api
+    - certificates2
+- name: Sync the edges
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/configurations/clusterManagement/operations?operation=synchronize
+    method: POST
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: 204
+    body_format: json
+    timeout: 120
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  register: _result
+  until: _result.status > 199
+  retries: 3 # 720 * 5 seconds = 1hour (60*60/5)
+  delay: 120 # Every 5 seconds
+  when:
+    - inventory_hostname == "edge_primary"
+  tags:
+    - sync
+
+- name: Restart everything
+  ansible.builtin.debug:
+    msg: "All services going down for a restart on {{ inventory_hostname }}"
+  notify:
+    - Stop all
+    - Wait for stop
+    - TM pid destroyed
+    - DB pid destroyed
+    - ADMIN pid destroyed
+    - SSHD pid destroyed
+    - AS2 pid destroyed
+    - FTPD pid destroyed
+    - Start all
+    - Wait for start
+  changed_when: true
+  tags:
+    - restart

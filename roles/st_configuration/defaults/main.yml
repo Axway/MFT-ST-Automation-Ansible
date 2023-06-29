@@ -1,0 +1,68 @@
+---
+generate_certs_core:
+  - name: admind
+    overwrite: true
+  - name: services
+    overwrite: "{{ overwrite_status }}"
+  - name: mdn
+    overwrite: "{{ overwrite_status }}"
+  - name: ssokey
+    overwrite: "{{ overwrite_status }}"
+  - name: repencrypt
+    overwrite: "{{ overwrite_status }}"
+  - name: streaming
+    overwrite: "{{ overwrite_status }}"
+generate_certs_edge:
+  - name: admind
+    overwrite: true
+  - name: services
+    overwrite: "{{ overwrite_status }}"
+  - name: ssokey
+    overwrite: "{{ overwrite_status }}"
+  - name: streaming
+    overwrite: "{{ overwrite_status }}"
+post_cert_json: "{{ lookup('template', 'certificate_generation_template.json.j2') }}"
+
+# EDIT AS NEEDED
+customer_specific_config_core:
+  - param_name: Users.SslEncryption  # Need to allow unencrypted connections to core to be able to use plain HTTP
+    parameter_value: "optional *"
+  - param_name: Admin.Security.SameSite  # Need to change the policy to stop SSO page loop
+    parameter_value: "Lax"
+  - param_name: Stfs.Encryption.CertAlias # Need this to assign the certificate for encryption at rest
+    parameter_value: "repencrypt"
+# To configure SecureTransport to compute the MD5 checksum for an uploaded file dynamically as the file is uploaded (needed because of repository encryption)
+  - param_name: Stfs.Hash.HashOnUpload
+    parameter_value: "true"
+
+server_config_edge:
+  - param_name: Http.AcceptQueueSize
+    parameter_value: 10000
+  - param_name: Http.Connection.MaxIdleTime
+    parameter_value: 300000
+  - param_name: Http.MaxSimultaneousTransfers
+    parameter_value: 25
+  - param_name: Http.Monitor.IterationCount
+    parameter_value: 10
+  - param_name: Http.Request.MinBandwidth
+    parameter_value: 0
+  - param_name: Http.ThreadPool.MaxThreads
+    parameter_value: 1024
+  - param_name: Http.ThreadPool.MinThreads
+    parameter_value: 128
+  - param_name: Http.ThreadPool.ThreadsIdleTimeMillis
+    parameter_value: 60000
+  - param_name: Ssh.max.pta.wait
+    parameter_value: 2000
+  - param_name: Ssh.maxChannels
+    parameter_value: 30
+  - param_name: Ssh.maxConnections
+    parameter_value: 300
+  - param_name: As2.Receiver.maxContentLength
+    parameter_value: 200
+  - param_name: As2.Sender.maxContentLength
+    parameter_value: 200
+  - param_name: Socks.Idle.Timeout
+    parameter_value: 7200000
+
+# defaults file for st_configuration
