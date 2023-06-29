@@ -1,0 +1,7 @@
+- name: Backup an existing deployment
+  hosts: st_deployment
+  become: true
+  roles:
+    - st_backup
+  vars_files:
+    - files/external_vars.yml

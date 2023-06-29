@@ -1,0 +1,150 @@
+- name: Prepare the OS for installing the ST nodes
+  hosts: ST_NODES
+  become: true
+  vars_files:
+    - files/external_vars.yml
+    - files/services_vars.yml
+  pre_tasks:
+    - name: Install dependencies
+      become: true
+      ansible.builtin.yum:
+        name:
+          - glibc.i686
+          - zlib.i686
+          - libaio
+          - nfs-utils
+          - telnet
+          - nfs4-acl-tools
+        state: present
+        update_cache: true
+      # this is not needed atm, but I will eventually create playbooks to work for all OS-es so this is just a prep - HS
+      when:
+        ansible_os_family == 'RedHat'
+      tags:
+        - rhel_prep
+
+    - name: Install additional dependencies for the edges
+      become: true
+      ansible.builtin.yum:
+        name:
+          - ncurses-compat-libs.x86_64
+          - ncurses-compat-libs.i686
+          - perl-Getopt-Long
+          - perl-Data-Dumper
+        state: present
+        update_cache: true
+      when:
+        - inventory_hostname in groups["edges"]
+        - ansible_os_family == 'RedHat'
+      tags:
+        - rhel_prep
+
+    - name: Create Axway group for non-root install
+      become: true
+      ansible.builtin.group:
+        name: "{{ ST_GROUP }}"
+        state: present
+        gid: "{{ ST_GROUP_GID }}"
+      tags:
+        - rhel_prep
+
+    - name: Create Axway user for non-root install
+      become: true
+      ansible.builtin.user:
+        name: "{{ ST_USER }}"
+        group: "{{ ST_GROUP }}"
+        state: present
+        comment: Account for SecureTransport
+        uid: "{{ ST_USER_UID }}"
+        createhome: true
+      tags:
+        - rhel_prep
+
+    - name: Create New Folders
+      become: true
+      ansible.builtin.file:
+        path: "{{ item }}"
+        owner: axway
+        group: axway
+        mode: '0777'
+        state: directory
+      loop:
+        - "{{ INSTALLER_DIR }}"
+        - "{{ INSTALLER_DIR }}/JRE"
+        - "{{ INSTALLER_DIR }}/ServiceUnitFiles"
+      when:
+        - ansible_os_family == 'RedHat'
+      tags:
+        - rhel_prep
+
+    - name: Create folder for mountpoint on core
+      ansible.builtin.file:
+        path: "{{ ST_MOUNTPOINT }}"
+        owner: axway
+        group: axway
+        mode: '0777'
+        state: directory
+      when:
+        - inventory_hostname in groups["cores"]
+        - ansible_os_family == 'RedHat'
+      tags:
+        - rhel_prep
+
+    - name: Mount an NFS volume for shared folders
+      ansible.posix.mount:
+        src: "{{ storage_hostname }}:{{ share }}"
+        path: "{{ ST_MOUNTPOINT }}"
+        opts: rw,vers=3,sync,actimeo=1,rsize=1048576,wsize=1048576
+        # Make sure no_wdelay, no_root_squash are options in /etc/exports
+        state: mounted
+        fstype: nfs
+        backup: true
+      when:
+        - inventory_hostname in groups["cores"]
+      tags:
+        - rhel_prep
+        - debug
+
+    - name: Configure sysctl.conf
+      become: true
+      ansible.builtin.blockinfile:
+        path: /etc/sysctl.conf
+        block: |
+          net.core.rmem_max=2096304
+          net.core.wmem_max=2096304
+          net.ipv4.tcp_moderate_rcvbuf=1
+          fs.file-max = 65536
+      notify:
+        - Apply_sysctl
+      tags:
+        - rhel_prep
+
+    - name: Set SELinux permissions on  binaries
+      community.general.sefcontext:
+        target: "{{ AXWAY_HOME }}"
+        setype: bin_t
+      tags:
+        - selinux
+    - name: Reload SELinux policy to ensure that ts3server is executable
+      ansible.builtin.command: restorecon -irv {{ AXWAY_HOME }}
+      tags:
+        - selinux
+
+  handlers:
+    - name: Apply_sysctl
+      become: true
+      become_user: root
+      ansible.builtin.command: "sysctl -p"
+    - name: reload systemd # noqa: name[casing]
+      become: true
+      become_user: root
+      ansible.builtin.systemd:
+        daemon_reload: true
+    - name: Reboot host and wait for it to restart
+      ansible.builtin.reboot:
+        msg: "Reboot initiated by Ansible"
+        connect_timeout: 5
+        reboot_timeout: 600
+        pre_reboot_delay: 0
+        post_reboot_delay: 30
+        test_command: whoami

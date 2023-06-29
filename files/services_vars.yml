@@ -1,0 +1,79 @@
+services_settings:
+  admin:
+    name: ADMIN service
+    pid_file: admin/tomcat.pid
+    svc_name: admin
+    edge_on: true
+    core_on: true
+    mem_max: 1024M
+    mem_min: 256M
+    protocol: ADMIN
+  as2d:
+    name: AS2 service
+    pid_file: as2d.pid
+    svc_name: as2d
+    edge_on: true
+    core_on: false
+    mem_max: 1024M
+    mem_min: 256M
+    protocol: AS2
+  ftpd:
+    name: FTP service
+    pid_file: ftpd.pid
+    svc_name: ftpd
+    edge_on: false
+    core_on: false
+    mem_max: 1024M
+    mem_min: 256M
+    protocol: FTP
+  httpd:
+    name: HTTP service
+    pid_file: httpd.pid
+    svc_name: httpd
+    edge_on: true
+    core_on: false
+    mem_max: 1024M
+    mem_min: 256M
+    protocol: HTTP
+  pesitd:
+    name: PESIT service
+    pid_file: pesitd.pid
+    svc_name: pesitd
+    edge_on: false
+    core_on: false
+    mem_max: 1024M
+    mem_min: 256M
+    protocol: PESIT
+  sshd:
+    name: SFTP service
+    pid_file: sshd.pid
+    svc_name: sshd
+    edge_on: true
+    core_on: true
+    mem_max: 1024M
+    mem_min: 256M
+    protocol: SSH
+  tm:
+    name: TM service
+    pid_file: tm.pid
+    svc_name: tm
+    edge_on: false
+    core_on: true
+    mem_max: 1024M
+    mem_min: 256M
+    protocol: TM
+  socks:
+    name: PROXY service
+    pid_file: socks.pid
+    svc_name: socks
+    edge_on: true
+    core_on: false
+    mem_max: 1024M
+    mem_min: 256M
+    protocol: SOCKS
+  db:
+    name: DB service
+    pid_file: db.pid
+    svc_name: db
+    edge_on: true
+    core_on: false

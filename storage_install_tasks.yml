@@ -1,0 +1,39 @@
+- name: Install nfs-utils
+  ansible.builtin.yum:
+    name:
+      - nfs-utils
+      - nfs4-acl-tools
+    state: present
+    allow_downgrade: true
+
+- name: Create a mountable directory if it does not exist
+  ansible.builtin.file:
+    path: "{{ share }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0777'
+- name: Reload nfs # noqa: no-changed-when
+  ansible.builtin.command: 'exportfs -ra'
+- name: Enable rpcbind  nfs
+  ansible.builtin.service:
+    name: "{{ item }}"
+    enabled: true
+  with_items:
+    - rpcbind
+    - nfs-server
+- name: Share in /etc/exports file
+  ansible.builtin.lineinfile:
+    path: /etc/exports
+    state: present
+    line: '{{ share }} {{ options }}'
+  notify: NFS server restart
+- name: NFS reload
+  ansible.builtin.systemd:
+    name: nfs-server
+    state: reloaded
+- name: NFS apply change configure
+  ansible.builtin.command: exportfs -rav
+  register: initialize_nfs
+  failed_when: "initialize_nfs.rc not in [0, 1]"
+  changed_when: "'exporting' in initialize_nfs.stdout_lines"

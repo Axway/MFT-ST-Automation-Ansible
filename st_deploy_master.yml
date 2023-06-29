@@ -1,0 +1,90 @@
+ # The playbook builds an EC deployment with PostgreSQL EC, 2 cores, 2 edges and a shared storage
+ # This is intended to be used just as a reference and an example.
+ # If you are using this to deploy SecureTransport, please review, validate and test all tasks and roles.
+ # This is provided as-is, and you should run it at your own risk.
+ # This is provided in order to provide usage examples and Axway cannot guarantee it is fit for production,
+ # or provide ongoing support for it.
+ # Author: Hristina Stoykova <hstoykova@axway.com>
+
+- name: Build a SecureTransport 2 x 2 EC
+  hosts: st_deployment
+  vars_files:
+    - files/external_vars.yml
+  pre_tasks:
+    - name: Store the hostname of each node as a variable
+      ansible.builtin.set_fact:
+        node_hostname: "{{ hostvars[inventory_hostname]['ansible_fqdn'] }}"
+    - name: Configure RHEL 8 repo # Internal servers typically do not have internet access.
+      become: true
+      ansible.builtin.copy:
+        src: "files/RHELOS-8.repo"
+        dest: "/etc/yum.repos.d/RHELOS-8.repo"
+        mode: '0644'
+      tags:
+        - rhel_prep
+    - name: Print the task start
+      ansible.builtin.debug:
+        msg: Starting to prepare the shared storage
+    - name: Install and configure NFS server
+      ansible.builtin.import_tasks: storage_install_tasks.yml
+      when: inventory_hostname in groups["storage"]
+  handlers:
+    - name: NFS server restart
+      ansible.builtin.service:
+        name: nfs-server
+        state: restarted
+        enabled: true
+
+- name: Build the Postgres database
+  hosts: database
+  become: true
+  vars_files:
+    - files/external_vars.yml
+  roles:
+    - postgres-config
+
+- name: Prepare the OS
+  ansible.builtin.import_playbook: os_install.yml
+  vars:
+    storage_hostname: "{{ hostvars['nfs_storage']['node_hostname'] }}"
+
+- name: Build the ST nodes
+  ansible.builtin.import_playbook: st_install.yml
+  vars:
+    storage_hostname: "{{ hostvars['nfs_storage']['node_hostname'] }}"
+    DB_HOSTNAME: "{{ hostvars['postgres_db']['node_hostname'] }}"  # noqa: var-naming[DB_HOSTNAME]
+
+- name: Configure ST Cluster
+  hosts: ST_NODES
+  become: true
+  become_user: axway
+  roles:
+    - st_configuration
+  vars_files:
+    - files/external_vars.yml
+    - files/services_vars.yml
+
+- name: Optimizing the ST nodes
+  hosts: ST_NODES
+  become: true
+  roles:
+    - st_optimization
+  vars_files:
+    - files/external_vars.yml
+    - files/services_vars.yml
+
+- name: Cleanup local files
+  hosts: 127.0.0.1
+  connection: local
+  tasks:
+    - name: Delete local directory
+      ansible.builtin.file:
+        path: "files/{{ item }}"
+        state: absent
+      with_items:
+        - certs/core_primary.pem
+        - certs/edge_primary.pem
+        - core/taeh
+        - edge/taeh
+      tags:
+        - cleanup_local
