@@ -1,0 +1,8 @@
+- name: Configure ST Cluster
+  hosts: ST_NODES
+  become: true
+  roles:
+    - st_configuration
+  vars_files:
+    - files/external_vars.yml
+    - files/services_vars.yml
