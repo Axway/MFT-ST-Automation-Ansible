@@ -129,8 +129,3 @@ It will connect to the configured servers and install all the software. It will 
 
 ## Authors
 - [Hristina Stoykova](mailto:hstoykova@axway.com)
-
-### Special thanks to:
-- Dimitar Peshev, for the help with APIs & Ansible
-- Dinko Petkov, for the help with installing PostgreSQL
-- [Old Bisbee Roasters](https://www.facebook.com/Old.Bisbee.Roasters/), for shipping enough freshly baked coffe to me, so I could write all this :) 
