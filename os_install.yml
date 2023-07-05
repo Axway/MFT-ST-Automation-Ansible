@@ -119,16 +119,16 @@
       tags:
         - rhel_prep
 
-    - name: Set SELinux permissions on  binaries
-      community.general.sefcontext:
-        target: "{{ AXWAY_HOME }}"
-        setype: bin_t
-      tags:
-        - selinux
-    - name: Reload SELinux policy to ensure that ts3server is executable
-      ansible.builtin.command: restorecon -irv {{ AXWAY_HOME }}
-      tags:
-        - selinux
+#    - name: Set SELinux permissions on  binaries
+#      community.general.sefcontext:
+#        target: "{{ AXWAY_HOME }}"
+#        setype: bin_t
+#      tags:
+#        - selinux
+#    - name: Reload SELinux policy to ensure that ts3server is executable
+#      ansible.builtin.command: restorecon -irv {{ AXWAY_HOME }}
+#      tags:
+#        - selinux
 
   handlers:
     - name: Apply_sysctl
