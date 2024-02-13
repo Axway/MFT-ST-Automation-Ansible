@@ -1,6 +1,6 @@
 - name: Configure edge sync
   become: true
-  become_user: axway
+  become_user: "{{ ST_USER }}"
   ansible.builtin.template:
     src: servers.j2
     dest: "{{ AXWAY_HOME }}/SecureTransport/lib/admin/config/servers"
@@ -12,8 +12,8 @@
   ansible.builtin.file:
     path: "{{ AXWAY_HOME }}/SecureTransport/var/tmp/sentinel_primary"
     state: touch
-    owner: axway
-    group: axway
+    owner: "{{ ST_USER }}"
+    group: "{{ ST_GROUP }}"
     mode: '0755'
   when:
     - inventory_hostname == "edge_primary"
@@ -24,8 +24,8 @@
   ansible.builtin.copy:
     src: "{{ CORE_LICENSE }}"
     dest: "{{ AXWAY_HOME }}/SecureTransport/conf/filedrive.license"
-    owner: axway
-    group: axway
+    owner: "{{ ST_USER }}"
+    group: "{{ ST_GROUP }}"
     mode: '0755'
   tags:
     - before_exchange
@@ -33,15 +33,15 @@
   ansible.builtin.copy:
     src: "{{ FEATURES_LICENSE }}"
     dest: "{{ AXWAY_HOME }}/SecureTransport/conf/st.license"
-    owner: axway
-    group: axway
+    owner: "{{ ST_USER }}"
+    group: "{{ ST_GROUP }}"
     mode: '0755'
   tags:
     - before_exchange
 
 - name: Assign memory to the admin service to make configuration easier
   become: true
-  become_user: axway
+  become_user:  "{{ ST_USER }}"
   ansible.builtin.lineinfile:
     path: "{{ FILEDRIVEHOME }}/conf/STStartScriptsConfig"
     regexp: '^ADMIN_JAVA_MEM_MAX='
@@ -51,7 +51,7 @@
 
 - name: Assign min memory to the admin service to make configuration easier
   become: true
-  become_user: axway
+  become_user: "{{ ST_USER }}"
   ansible.builtin.lineinfile:
     path: "{{ FILEDRIVEHOME }}/conf/STStartScriptsConfig"
     regexp: '^ADMIN_JAVA_MEM_MIN='
@@ -61,24 +61,24 @@
 
 - name: Stop admin
   become: true
-  become_user: axway
+  become_user: "{{ ST_USER }}"
   ansible.builtin.command: "sh {{ FILEDRIVEHOME }}/bin/stop_admin"
   args:
     chdir: "{{ FILEDRIVEHOME }}/bin/"
   tags:
     - before_exchange
 
-- name: Wait for port 8444 of any IP to close active connections
+- name: Wait for the admin port of any IP to close active connections
   ansible.builtin.wait_for:
     host: 0.0.0.0
-    port: 8444
+    port: "{{ SSL_ADMIN_PORT }}"
     state: drained
   tags:
     - before_exchange
 
 - name: Start admin
   become: true
-  become_user: axway
+  become_user: "{{ ST_USER }}"
   ansible.builtin.shell:
     cmd: "{{ FILEDRIVEHOME }}/bin/start_admin"
     executable: /usr/bin/bash
@@ -88,7 +88,7 @@
 - name: Wait for port 8000 to become open on the host, don't start checking for 10 seconds
   ansible.builtin.wait_for:
     host: 0.0.0.0
-    port: 8444
+    port: "{{ SSL_ADMIN_PORT }}"
     delay: 10
     timeout: 600
   tags:
@@ -110,7 +110,7 @@
 
 - name: Test admin:admin login
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/myself
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/myself
     method: POST
     validate_certs: false
     user: admin
@@ -130,7 +130,7 @@
   vars:
     admin_passwd_patch: "{{ lookup('template', 'passwordChange.json.j2') }}"
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/myself
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/myself
     method: PATCH
     validate_certs: false
     user: admin
@@ -153,7 +153,7 @@
 
 - name: Sync the edges before configuration
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/configurations/clusterManagement/operations?operation=synchronize
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/configurations/clusterManagement/operations?operation=synchronize
     method: POST
     validate_certs: false
     user: admin
@@ -179,7 +179,7 @@
 
 - name: Generate the internal CA
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/certificates
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates
     method: POST
     validate_certs: false
     user: admin
@@ -216,7 +216,7 @@
 
 - name: Get current certificates
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/certificates?fields=name&usage=local
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates?fields=name&usage=local
     method: GET
     validate_certs: false
     user: admin
@@ -241,7 +241,7 @@
 
 - name: Get remote_ca certificates
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/certificates?fields=name&type=x509&usage=trusted&name=remote_ca
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates?fields=name&type=x509&usage=trusted&name=remote_ca
     method: GET
     validate_certs: false
     user: admin
@@ -276,7 +276,7 @@
 
 - name: Get the Stfs.Encryption.CertAlias value
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/configurations/options/Stfs.Encryption.CertAlias
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/configurations/options/Stfs.Encryption.CertAlias
     method: GET
     validate_certs: false
     user: admin
@@ -309,7 +309,7 @@
   vars:
     overwrite_status: false
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/certificates
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates
     method: POST
     validate_certs: false
     user: admin
@@ -338,7 +338,7 @@
   vars:
     overwrite_status: true
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/certificates
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates
     method: POST
     validate_certs: false
     user: admin
@@ -367,7 +367,7 @@
   vars:
     overwrite_status: false
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/certificates
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates
     method: POST
     validate_certs: false
     user: admin
@@ -396,7 +396,7 @@
   vars:
     overwrite_status: true
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/certificates
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates
     method: POST
     validate_certs: false
     user: admin
@@ -423,7 +423,7 @@
 
 - name: Create DMZ for streaming on core
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/zones
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/zones
     method: POST
     validate_certs: false
     user: admin
@@ -446,7 +446,7 @@
 
 - name: Update edge DMZ
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/zones/Private
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/zones/Private
     method: PUT
     validate_certs: false
     user: admin
@@ -468,7 +468,7 @@
     - DMZ
 - name: Configure the allowed ST servers
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/configurations/allowedSTServers
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/configurations/allowedSTServers
     method: PATCH
     validate_certs: false
     user: admin
@@ -490,7 +490,7 @@
     - parameter_path: /values
     - parameter_value: remote_ca
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/configurations/options/Streaming.TrustedAliases
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/configurations/options/Streaming.TrustedAliases
     validate_certs: false
     method: PATCH
     user: admin
@@ -517,7 +517,7 @@
     - parameter_value: services
     - srv_name: Http Default
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/servers/{{ srv_name | urlencode() }}
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
     validate_certs: false
     user: admin
@@ -544,7 +544,7 @@
     - parameter_value: services
     - srv_name: Ftp Default
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/servers/{{ srv_name | urlencode() }}
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
     validate_certs: false
     user: admin
@@ -572,7 +572,7 @@
     - parameter_value: services
     - srv_name: As2 Default
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/servers/{{ srv_name | urlencode() }}
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
     validate_certs: false
     user: admin
@@ -599,7 +599,7 @@
     - parameter_value: services
     - srv_name: Ssh Default
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/servers/{{ srv_name | urlencode() }}
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
     validate_certs: false
     user: admin
@@ -626,7 +626,7 @@
     - parameter_value: services
     - srv_name: Pesit Default
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/servers/{{ srv_name | urlencode() }}
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
     validate_certs: false
     user: admin
@@ -654,7 +654,7 @@
     - parameter_value: true
     - srv_name: Ftp Default
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/servers/{{ srv_name | urlencode() }}
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
     validate_certs: false
     user: admin
@@ -679,7 +679,7 @@
     - parameter_value: true
     - srv_name: Ftp Default
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/servers/{{ srv_name | urlencode() }}
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
     validate_certs: false
     user: admin
@@ -704,7 +704,7 @@
     - parameter_value: true
     - srv_name: Http Default
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/servers/{{ srv_name | urlencode() }}
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
     validate_certs: false
     user: admin
@@ -729,7 +729,7 @@
     - parameter_value: true
     - srv_name: As2 Default
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/servers/{{ srv_name | urlencode() }}
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
     validate_certs: false
     user: admin
@@ -754,7 +754,7 @@
     - parameter_value: true
     - srv_name: Ssh Default
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/servers/{{ srv_name | urlencode() }}
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
     validate_certs: false
     user: admin
@@ -779,7 +779,7 @@
     - parameter_value: true
     - srv_name: Pesit Default
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/servers/{{ srv_name | urlencode() }}
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
     validate_certs: false
     user: admin
@@ -805,7 +805,7 @@
     - parameter_value: true
     - srv_name: Http Default
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/servers/{{ srv_name | urlencode() }}
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
     validate_certs: false
     user: admin
@@ -828,7 +828,7 @@
   vars:
     - parameter_path: /values
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/configurations/options/{{ item.param_name }}
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/configurations/options/{{ item.param_name }}
     method: PATCH
     validate_certs: false
     user: admin
@@ -852,7 +852,7 @@
 
 - name: Get the array number of opt so we can remove it
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/configurations/options/UnsafePaths
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/configurations/options/UnsafePaths
     method: GET
     validate_certs: false
     user: admin
@@ -874,7 +874,7 @@
 
 - name: If /opt is in the array, go ahead and remove it
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/configurations/options/UnsafePaths
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/configurations/options/UnsafePaths
     method: PATCH
     validate_certs: false
     user: admin
@@ -896,7 +896,7 @@
     - rest_api
 - name: Get the EncryptClass user class if it exists
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/userClasses?className=EncryptClass
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/userClasses?className=EncryptClass
     method: GET
     validate_certs: false
     user: admin
@@ -919,7 +919,7 @@
 
 - name: Create the EncryptClass if it doesn't exist
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/userClasses
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/userClasses
     method: POST
     validate_certs: false
     user: admin
@@ -961,7 +961,7 @@
 - name: Get the new CAs
   become: false
   ansible.builtin.uri:
-    url: "https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/\
+    url: "https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/\
     certificates/{{ ca_cert_id }}/operations?operation=export&format=pem&includePath=false"
     method: POST
     validate_certs: false
@@ -991,7 +991,7 @@
   vars:
     overwrite_status: "{{ remote_ca_overwrite }}"
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/certificates
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates
     method: POST
     validate_certs: false
     user: admin
@@ -1027,7 +1027,7 @@
   vars:
     overwrite_status: "{{ remote_ca_overwrite }}"
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/certificates
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates
     method: POST
     validate_certs: false
     user: admin
@@ -1061,7 +1061,7 @@
     - certificates2
 - name: Sync the edges
   ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/configurations/clusterManagement/operations?operation=synchronize
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/configurations/clusterManagement/operations?operation=synchronize
     method: POST
     validate_certs: false
     user: admin

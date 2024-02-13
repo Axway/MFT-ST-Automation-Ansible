@@ -1,24 +1,24 @@
 ---
 - name: Update the memory allocations on cores
   become: true
-  become_user: axway
+  become_user: "{{ ST_USER }}"
   vars:
     - env_type: core
   ansible.builtin.template:
     src: STStartScriptsConfig.j2
     dest: "{{ FILEDRIVEHOME }}/conf/STStartScriptsConfig"
-    owner: axway
+    owner: "{{ ST_USER }}"
     mode: '0750'
   when: inventory_hostname in groups["cores"]
 - name: Update the memory allocations on edges
   become: true
-  become_user: axway
+  become_user: "{{ ST_USER }}"
   vars:
     - env_type: edge
   ansible.builtin.template:
     src: STStartScriptsConfig.j2
     dest: "{{ FILEDRIVEHOME }}/conf/STStartScriptsConfig"
-    owner: axway
+    owner: "{{ ST_USER }}"
     mode: '0750'
   when: inventory_hostname in groups["edges"]
 

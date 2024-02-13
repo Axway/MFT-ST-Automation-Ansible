@@ -1,11 +1,12 @@
 #### ST INSTALL PARAMS
 
 # AXWAY_HOME is the path where SecureTransport should be installed under & holds the Axway Installer
-AXWAY_HOME: /opt/axway/apps
+AXWAY_HOME: /opt/axway
+JRE_VERSION: jre11_u11.0.21_9_64
 
 # CONSTRUCT ST DOWNLOAD LINK
-artifactory:
-st_install_file: SecureTransport_5.5-20230629_Install_linux-x86-64_BN3196.zip
+artifactory: https://artifactory-ptx.ecd.axway.int/artifactory/securetransport-generic-preprod-sofi/5.5/
+st_install_file: "SecureTransport_5.5-20240125_Install_linux-x86-64_BN3203.zip"
 ST_DOWNLOAD_LINK: "{{ artifactory}}{{ st_install_file }}"
 AZURE_FILE_PLUGIN: "{{ artifactory}}securetransport-plugins-site-azurefile-1.1.3-100.zip"
 s3_PLUGIN: "{{ artifactory}}securetransport-plugins-site-s3-2.0.4-231.zip"
@@ -18,20 +19,24 @@ SMB_PLUGIN: "{{ artifactory}}securetransport-plugins-site-smb-2.1.2-122.zip"
 ST_VERSION: "{{ st_install_file.split('_')[ 1 ] }}"
 
 # This is a sandbox directory to hold the files we need to install, like the installer, JRE, taeh...
-INSTALLER_DIR: /opt/axway/installer_files
+INSTALLER_DIR: "{{ AXWAY_HOME }}/installer"
 
 ST_MOUNTPOINT: /opt/axway/data
 FILEDRIVEHOME: "{{ AXWAY_HOME }}/SecureTransport"
 
 #### ST CONFIG PARAMS
 CORE_LICENSE: files/licenses/ST Core Temp.txt
-FEATURES_LICENSE: files/licenses/2ST2 Features Temp [PostgreSQL].txt
+FEATURES_LICENSE: files/licenses/ST2 Features Temp [PostgreSQL].txt
 TMP_ADMIN_PWD: Axway123
 ca_password: password
 ST_USER: axway
 ST_USER_UID: 2001
 ST_GROUP: axway
 ST_GROUP_GID: 2001
+
+
+# Port must be higher than 1024 on non-root installs
+SSL_ADMIN_PORT: 8444
 
 #### DB INSTALL PARAMS
 
@@ -41,6 +46,8 @@ DB_USER: stuser
 DB_USER_PASSWORD: "Axway123!"
 # DB_NAME is the database name
 DB_NAME: ST_DB
+DB_HOST: "{{ hostvars['postgres_db']['node_hostname'] }}"
+DB_PORT: 5432
 
 # THESE CAN REMAIN UNCHANGED
 ST_DATA: /var/lib/pgsql/14/data/pg_tblspc/st_data
@@ -52,3 +59,5 @@ ST_SERVERLOG: /var/lib/pgsql/14/data/pg_tblspc/st_serverlog
 share: "/nfs/share"
 options: "*(rw,sync,no_root_squash,no_wdelay)"
 permission: '0777'
+
+

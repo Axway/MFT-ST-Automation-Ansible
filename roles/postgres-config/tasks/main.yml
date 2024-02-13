@@ -98,7 +98,7 @@
 - name: Create a new tablespace called st_data
   community.postgresql.postgresql_tablespace:
     name: st_data
-    owner: postgres
+    owner: "{{ DB_USER }}"
     location: "{{ ST_DATA }}"
     state: present
   become: true
@@ -106,7 +106,7 @@
 - name: Create a new tablespace called st_serverlog
   community.postgresql.postgresql_tablespace:
     name: st_serverlog
-    owner: postgres
+    owner: "{{ DB_USER }}"
     location: "{{ ST_SERVERLOG }}"
     state: present
   become: true
@@ -114,7 +114,7 @@
 - name: Create a new tablespace called st_filetracking
   community.postgresql.postgresql_tablespace:
     name: st_filetracking
-    owner: postgres
+    owner: "{{ DB_USER }}"
     location: "{{ ST_FILETRACKING }}"
     state: present
   become: true

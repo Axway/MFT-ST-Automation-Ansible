@@ -57,7 +57,7 @@
 - name: Configure ST Cluster
   hosts: ST_NODES
   become: true
-  become_user: axway
+  become_user: "{{ ST_USER }}"
   roles:
     - st_configuration
   vars_files:

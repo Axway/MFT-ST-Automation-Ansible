@@ -15,7 +15,9 @@
           - nfs-utils
           - telnet
           - nfs4-acl-tools
-        state: present
+          - libxslt-devel
+          - libxml2
+        state: latest
         update_cache: true
       # this is not needed atm, but I will eventually create playbooks to work for all OS-es so this is just a prep - HS
       when:
@@ -64,8 +66,8 @@
       become: true
       ansible.builtin.file:
         path: "{{ item }}"
-        owner: axway
-        group: axway
+        owner:  "{{ ST_USER }}"
+        group: "{{ ST_GROUP }}"
         mode: '0750'
         state: directory
       loop:
@@ -80,8 +82,8 @@
     - name: Create folder for mountpoint on core
       ansible.builtin.file:
         path: "{{ ST_MOUNTPOINT }}"
-        owner: axway
-        group: axway
+        owner:  "{{ ST_USER }}"
+        group: "{{ ST_GROUP }}"
         mode: '0777'
         state: directory
       when:

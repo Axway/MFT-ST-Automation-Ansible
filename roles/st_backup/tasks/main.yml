@@ -25,7 +25,7 @@
     - db_backup
 - name: Stop all
   become: true
-  become_user: axway
+  become_user: "{{ ST_USER }}"
   ansible.builtin.shell:
     cmd: "sh {{ FILEDRIVEHOME }}/bin/stop_all"
     executable: /usr/bin/bash

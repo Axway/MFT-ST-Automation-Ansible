@@ -19,7 +19,7 @@
     delay: 5 # Every 5 seconds
 - name: stop_all # noqa: name[casing]
   become: true
-  become_user: axway
+  become_user: "{{ ST_USER }}"
   ansible.builtin.command: "sh {{ FILEDRIVEHOME }}/bin/stop_all"
   args:
     chdir: "{{ FILEDRIVEHOME }}/bin/"
@@ -28,7 +28,7 @@
     - debug
 - name: start_all # noqa: name[casing]
   become: true
-  become_user: axway
+  become_user: "{{ ST_USER }}"
   ansible.builtin.shell: "sh {{ FILEDRIVEHOME }}/bin/start_all"
   args:
     chdir: "{{ FILEDRIVEHOME }}/bin/"
