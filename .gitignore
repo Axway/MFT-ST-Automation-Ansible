@@ -6,3 +6,4 @@
 /env/
 /files/licenses/ST2*
 /files/log/ansible-deployment.log
+/files/download_links.yml
