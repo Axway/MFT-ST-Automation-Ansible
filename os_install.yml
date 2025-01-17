@@ -15,15 +15,14 @@
           - nfs-utils
           - telnet
           - nfs4-acl-tools
-          - libxslt-devel
-          - libxml2
-        state: latest
+        state: present
         update_cache: true
       # this is not needed atm, but I will eventually create playbooks to work for all OS-es so this is just a prep - HS
       when:
         ansible_os_family == 'RedHat'
       tags:
         - rhel_prep
+        - lxml
 
     - name: Install additional dependencies for the edges
       become: true

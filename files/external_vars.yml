@@ -27,13 +27,18 @@ FILEDRIVEHOME: "{{ AXWAY_HOME }}/SecureTransport"
 #### ST CONFIG PARAMS
 CORE_LICENSE: files/licenses/ST Core Temp.txt
 FEATURES_LICENSE: files/licenses/ST2 Features Temp [PostgreSQL].txt
-TMP_ADMIN_PWD: Axway123
-ca_password: password
-ST_USER: axway
-ST_USER_UID: 2001
-ST_GROUP: axway
-ST_GROUP_GID: 2001
-
+#TMP_ADMIN_PWD: Axway123
+#ca_password: password
+#ST_USER: axway
+#ST_USER_UID: 2001
+#ST_GROUP: axway
+#ST_GROUP_GID: 2001
+TMP_ADMIN_PWD: eft_adm
+ca_password: experian!101!
+ST_USER: dispatch
+ST_USER_UID: 68200
+ST_GROUP: dispatch
+ST_GROUP_GID: 68200
 
 # Port must be higher than 1024 on non-root installs
 SSL_ADMIN_PORT: 8444

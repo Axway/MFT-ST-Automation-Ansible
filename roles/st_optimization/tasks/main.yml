@@ -22,10 +22,19 @@
     mode: '0750'
   when: inventory_hostname in groups["edges"]
 
+    
 - name: Install lxml
+  become: true
+  become_user: root
   ansible.builtin.pip:
-    name: lxml
-    state: present
+    name: https://files.pythonhosted.org/packages/8f/14/c4e92fe3ae3261e3e5fba60d5be0f6f463d4b30e5ccfeaf1aa07262b4bf6/lxml-5.1.0-cp36-cp36m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+    state: latest
+    virtualenv: "{{ INSTALLER_DIR }}/venv"
+    virtualenv_site_packages: true
+    virtualenv_command: /usr/bin/python3 -m venv
+  tags:
+    - lxml
+    
 - name: Update c3p0.max_size
   community.general.xml:
     path: "{{ FILEDRIVEHOME }}/conf/configuration.xml"

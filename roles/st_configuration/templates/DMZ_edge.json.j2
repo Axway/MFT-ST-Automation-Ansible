@@ -47,7 +47,7 @@
       ],
       "ipAddresses": [
         {
-          "ipAddress": "{{ hostvars[inventory_hostname]["ansible_fqdn"] }}"
+          "ipAddress": '{{ hostvars[inventory_hostname].ansible_default_ipv4.address }}'
         }
       ]
     }
