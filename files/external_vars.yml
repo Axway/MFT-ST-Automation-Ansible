@@ -4,17 +4,9 @@
 AXWAY_HOME: /opt/axway
 JRE_VERSION: jre11_u11.0.21_9_64
 
-# CONSTRUCT ST DOWNLOAD LINK
-artifactory: https://artifactory-ptx.ecd.axway.int/artifactory/securetransport-generic-preprod-sofi/5.5/
-st_install_file: "SecureTransport_5.5-20240125_Install_linux-x86-64_BN3203.zip"
-ST_DOWNLOAD_LINK: "{{ artifactory}}{{ st_install_file }}"
-AZURE_FILE_PLUGIN: "{{ artifactory}}securetransport-plugins-site-azurefile-1.1.3-100.zip"
-s3_PLUGIN: "{{ artifactory}}securetransport-plugins-site-s3-2.0.4-231.zip"
-JMS_PLUGIN: "{{ artifactory}}securetransport-plugins-site-jms-1.0.6-73.zip"
-AZURE_BLOB_PLUGIN: "{{ artifactory}}securetransport-plugins-site-azureblob-2.0.0-127.zip"
-GOOGLE_CLOUD_PLUGIN: "{{ artifactory}}securetransport-plugins-site-googlecloudstorage-1.0.4-654.zip"
-SHAREPOINT_PLUGIN: "{{ artifactory}}securetransport-plugins-site-sharepoint-2.0.2-124.zip"
-SMB_PLUGIN: "{{ artifactory}}securetransport-plugins-site-smb-2.1.2-122.zip"
+st_install_file: "SecureTransport_5.5-20241219_Install_linux-x86-64_BN3217.zip"
+
+
 
 ST_VERSION: "{{ st_install_file.split('_')[ 1 ] }}"
 
