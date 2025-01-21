@@ -9,12 +9,17 @@
       become: true
       ansible.builtin.yum:
         name:
-          - glibc.i686
-          - zlib.i686
+          - glibc
+          - glibc-langpack-en
+          - libxml2
+          - libxslt
+          - zlib
           - libaio
           - nfs-utils
           - telnet
           - nfs4-acl-tools
+          - python3-lxml
+
         state: present
         update_cache: true
       # this is not needed atm, but I will eventually create playbooks to work for all OS-es so this is just a prep - HS
@@ -24,21 +29,21 @@
         - rhel_prep
         - lxml
 
-    - name: Install additional dependencies for the edges
-      become: true
-      ansible.builtin.yum:
-        name:
-          - ncurses-compat-libs.x86_64
-          - ncurses-compat-libs.i686
-          - perl-Getopt-Long
-          - perl-Data-Dumper
-        state: present
-        update_cache: true
-      when:
-        - inventory_hostname in groups["edges"]
-        - ansible_os_family == 'RedHat'
-      tags:
-        - rhel_prep
+#    - name: Install additional dependencies for the edges
+#      become: true
+#      ansible.builtin.yum:
+#        name:
+#          - ncurses-compat-libs.x86_64
+#          - ncurses-compat-libs.i686
+#          - perl-Getopt-Long
+#          - perl-Data-Dumper
+#        state: present
+#        update_cache: true
+#      when:
+#        - inventory_hostname in groups["edges"]
+#        - ansible_os_family == 'RedHat'
+#      tags:
+#        - rhel_prep
 
     - name: Create Axway group for non-root install
       become: true
@@ -90,6 +95,11 @@
         - ansible_os_family == 'RedHat'
       tags:
         - rhel_prep
+    - name: Stop service firewalld, if started
+      # Note: for production environments, you want to add nfs:tcp as an exception instead
+      ansible.builtin.service:
+        name: firewalld
+        state: stopped
 
     - name: Mount an NFS volume for shared folders
       ansible.posix.mount:

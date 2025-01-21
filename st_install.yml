@@ -5,6 +5,7 @@
   vars_files:
     - files/external_vars.yml
     - files/services_vars.yml
+    - files/download_links.yml
   pre_tasks:
     - name: Is ST Installed?
       ansible.builtin.stat:
@@ -42,7 +43,7 @@
     - name: Find the name of the archive that contains the JRE
       ansible.builtin.find:
         paths: "{{ INSTALLER_DIR }}/Java/linux-x86"
-        patterns: 'jre1*.zip'
+        patterns: 'jre*.zip'
       register: file_to_copy
       tags:
         - st_install
@@ -82,8 +83,7 @@
         st_silentfile_properties: "{{ silent_file.files.0.path | basename }}"
       when:
         - not is_installed.stat.exists
-      tags:
-        - d
+
     - name: Unarchive the JRE
       ansible.builtin.unarchive:
         src: "{{ file_to_copy['files'][0]['path'] }}"
@@ -259,12 +259,12 @@
         - { option: 'Edge', value: 'true' }
         - { option: 'Edge.ModuleType', value: 'Installed' }
         - { option: 'dbType', value: 'useDBLocal' }
-        - { option: 'internalDBPort', value: '33060' }
+        - { option: 'internalDBPort', value: '54321' }
         - { option: 'internalDBPort.Type', value: 'IPPortOwner' }
         - { option: 'internalDBPort.Max', value: '65535' }
         - { option: 'internalDBPort.Min', value: '1024' }
-        - { option: 'internalDBUseSecureConnection', value: 'false' }
-        - { option: 'internalDBAutoGenerateCertificates', value: 'false' }
+        - { option: 'internalDBUseSecureConnection', value: 'true' }
+        - { option: 'internalDBAutoGenerateCertificates', value: 'true' }
         - { option: 'internalDBCaPath', value: '' }
         - { option: 'internalDBServerKeyPath', value: '' }
         - { option: 'internalDBServerCertPath', value: '' }
