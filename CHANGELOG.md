@@ -14,3 +14,4 @@
 - Removed the 32-bit library requirements and the MariaDB requirements for edges
 - Added a task to stop firewalld before mounting. In production, please add nfs:tcp as a firewall exception instead
 - Changed the jre pattern from jre1 to jre to account for jre2+
+- Change the Edges install parameters to accomodate the modernized SC

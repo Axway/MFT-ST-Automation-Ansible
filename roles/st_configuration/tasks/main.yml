@@ -1,24 +1,4 @@
-- name: Configure edge sync
-  become: true
-  become_user: "{{ ST_USER }}"
-  ansible.builtin.template:
-    src: servers.j2
-    dest: "{{ AXWAY_HOME }}/SecureTransport/lib/admin/config/servers"
-    mode: '0700'
-  when: inventory_hostname in groups["edges"]
-  tags:
-    - before_exchange
-- name: Create sentinel_primary for Edge Sync
-  ansible.builtin.file:
-    path: "{{ AXWAY_HOME }}/SecureTransport/var/tmp/sentinel_primary"
-    state: touch
-    owner: "{{ ST_USER }}"
-    group: "{{ ST_GROUP }}"
-    mode: '0755'
-  when:
-    - inventory_hostname == "edge_primary"
-  tags:
-    - before_exchange
+
 
 - name: Install Core License
   ansible.builtin.copy:
@@ -150,31 +130,6 @@
   tags:
     - rest_api
 
-
-- name: Sync the edges before configuration
-  ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/configurations/clusterManagement/operations?operation=synchronize
-    method: POST
-    validate_certs: false
-    user: admin
-    password: "{{ TMP_ADMIN_PWD }}"
-    force_basic_auth: true
-    return_content: true
-    status_code: 204
-    body_format: json
-    timeout: 120
-    headers:
-      Content-Type: application/json
-      Accept: application/json
-      idp_id: ST_IDP
-  register: _result
-  until: _result.status > 199
-  retries: 3
-  delay: 120 # Every 2 minutes
-  when:
-    - inventory_hostname == "edge_primary"
-  tags:
-    - sync
 
 
 - name: Generate the internal CA
@@ -1059,30 +1014,7 @@
   tags:
     - rest_api
     - certificates2
-- name: Sync the edges
-  ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/configurations/clusterManagement/operations?operation=synchronize
-    method: POST
-    validate_certs: false
-    user: admin
-    password: "{{ TMP_ADMIN_PWD }}"
-    force_basic_auth: true
-    return_content: true
-    status_code: 204
-    body_format: json
-    timeout: 120
-    headers:
-      Content-Type: application/json
-      Accept: application/json
-      idp_id: ST_IDP
-  register: _result
-  until: _result.status > 199
-  retries: 3 # 720 * 5 seconds = 1hour (60*60/5)
-  delay: 120 # Every 5 seconds
-  when:
-    - inventory_hostname == "edge_primary"
-  tags:
-    - sync
+
 
 - name: Restart everything
   ansible.builtin.debug:

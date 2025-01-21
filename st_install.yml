@@ -148,7 +148,7 @@
         line: "{{ item.option }} = {{ item.value }}"
       with_items:
         - { option: 'Component.ACCEPT_GENERAL_CONDITIONS', value: 'Yes' }
-        - { option: 'Component.JavaHome', value: '{{ AXWAY_HOME }}/Axway/Java/linux-x86/ {{ (file_to_copy.files.0.path |basename).rsplit(".",1)[0] }}' }
+        - { option: 'Component.JavaHome', value: '{{ AXWAY_HOME }}/Axway/Java/linux-x86/{{ (file_to_copy.files.0.path |basename).rsplit(".",1)[0] }}' }
         - { option: 'SelectedBitArchitecture', value: '64' }
         - { option: 'InstMode', value: 'Install' }
         - { option: 'SecureTransport', value: 'true' }
@@ -223,7 +223,7 @@
       tags:
         - st_install
     
-    - name: Update DB password in Install_SecureTransport_V5.5.properties
+    - name: Update DB password in Install_SecureTransport_V5.5.properties for ST Core
       become: true
       become_user: "{{ ST_USER }}"
       ansible.builtin.shell: "{{ INSTALLER_DIR }}/Tools/SilentFileEditor/SilentFileEditor.sh \
@@ -240,11 +240,7 @@
         - not is_installed.stat.exists
       tags:
         - st_install2
-    - name: print
-      debug:
-        msg: "{{ user_cmd_result }}"
-      tags:
-        - st_install2
+
     
     - name: Configure Install_SecureTransport_V5.5.properties for ST Edge
       become: true
@@ -270,12 +266,41 @@
         - { option: 'internalDBServerCertPath', value: '' }
         - { option: 'externalDBUseExistingSchema', value: 'false' }
         - { option: 'externalDBUseSecureConnection', value: 'false' }
+        - { option: 'databaseUserName', value: '{{ ST_USER }}' }
+        - { option: 'internalDBPrimaryHost', value: '{{ edge_primary_ip }}' }
+        - { option: 'internalDBPassword.Format', value: 'DefenceV1' }
+        - { option: 'internalDBReplicationPassword.Format', value: 'DefenceV1' }
+        - { option: 'internalDBHostsAutoRegister', value: '{{ edge_primary_ip }},{{ edge_secondary_ip }}' }
+        - { option: 'enableDBFailover', value: 'true' }
+        - { option: 'internalDBDataDir', value: '{{ FILEDRIVEHOME }}/var/db/postgresql/' }
+        - { option: 'internalDBDataDir.Type', value: 'Directory' }
+        - { option: 'internalDBReplicationEnabled', value: 'true' }
+        - { option: 'internalDBPassword', value: '' }
+        - { option: 'internalDBReplicationPassword', value: '' }
+
       when:
         - inventory_hostname in groups["edges"]
         - not is_installed.stat.exists
       tags:
         - st_install
-    
+        
+    - name: Configure Install_SecureTransport_V5.5.properties for ST Edge Primary
+      become: true
+      become_user: "{{ ST_USER }}"
+      ansible.builtin.lineinfile:
+        path: "{{ INSTALLER_DIR }}/{{ st_silentfile_properties }}"
+        regexp: '^{{ item.option }} ='
+        line: "{{ item.option }} = {{ item.value }}"
+      with_items:
+        - { option: 'internaldbInstallationType', value: 'internalDBPrimaryNode' }
+        - { option: 'internalDBUseExistingSchema', value: 'false' }
+      when:
+        - inventory_hostname == "edge_primary"
+        - not is_installed.stat.exists
+      tags:
+        - st_install
+
+        
     - name: Configure Install_SecureTransport_V5.5.properties for ST Core Secondary
       become: true
       become_user: "{{ ST_USER }}"
@@ -307,11 +332,44 @@
         - { option: 'SecretFilePath', value: '{{ INSTALLER_DIR }}/taeh' }
         - { option: 'SecretFilePath.Type', value: 'File' }
         - { option: 'tomcatShutdownPort', value: '' }
+        - { option: 'internalDBUseExistingSchema', value: 'true' }
       when:
         - inventory_hostname == "edge_secondary"
         - not is_installed.stat.exists
       tags:
         - st_install
+        
+    - name: Update DB password in Install_SecureTransport_V5.5.properties for ST edge
+      become: true
+      become_user: "{{ ST_USER }}"
+      ansible.builtin.shell: "{{ INSTALLER_DIR }}/Tools/SilentFileEditor/SilentFileEditor.sh \
+          {{ INSTALLER_DIR }}/{{ st_silentfile_properties }} internalDBPassword {{ DB_USER_PASSWORD }} -c"
+      args:
+        chdir: "{{ INSTALLER_DIR }}/Tools/SilentFileEditor/"
+        executable: /bin/bash
+      environment:
+        JAVA_HOME: "{{ INSTALLER_DIR }}/JRE"
+      register: user_cmd_result_db_edges
+      changed_when: false
+      when:
+        - inventory_hostname in groups["edges"]
+        - not is_installed.stat.exists
+    - name: Update replica password in Install_SecureTransport_V5.5.properties for ST edge
+      become: true
+      become_user: "{{ ST_USER }}"
+      ansible.builtin.shell: "{{ INSTALLER_DIR }}/Tools/SilentFileEditor/SilentFileEditor.sh \
+          {{ INSTALLER_DIR }}/{{ st_silentfile_properties }} internalDBReplicationPassword {{ DB_USER_PASSWORD }} -c"
+      args:
+        chdir: "{{ INSTALLER_DIR }}/Tools/SilentFileEditor/"
+        executable: /bin/bash
+      environment:
+        JAVA_HOME: "{{ INSTALLER_DIR }}/JRE"
+      register: user_cmd_result_replica_edges
+      changed_when: false
+      when:
+        - inventory_hostname in groups["edges"]
+        - not is_installed.stat.exists
+
 
 
     - name: SilentInstall SecureTransport Primaries
@@ -337,7 +395,22 @@
       when: inventory_hostname == "core_primary"
       tags:
         - st_install
-
+        
+    # This is to fix the issue introduced with RDST-64642
+    - name: Grant user replication from network edge secondary access for replication
+      become: true
+      become_user: "{{ ST_USER }}"
+      postgresql_pg_hba:
+        dest: "{{ FILEDRIVEHOME }}/var/db/postgresql/data/pg_hba.conf"
+        contype: host
+        users: "{{ ST_USER }}"
+        source: "{{ edge_secondary_cidr }}"
+        databases: st
+        method: scram-sha-256
+      when:
+        - inventory_hostname == "edge_primary"
+      tags:
+        - test_me
 
     - name: Get the taeh from the ST edge primary
       ansible.builtin.fetch:
