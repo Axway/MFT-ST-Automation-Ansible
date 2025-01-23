@@ -13,6 +13,13 @@
       register: is_installed
       tags:
         - st_install
+    - name: Read repencrypt value
+      ansible.builtin.debug:
+        msg: "{{ edge_secondary_cidr }}"
+      when:
+        - inventory_hostname == "core_primary"
+      tags:
+        - test_me_2
 
     - name: Check if installer is there
       ansible.builtin.stat:
@@ -333,6 +340,7 @@
         - { option: 'SecretFilePath.Type', value: 'File' }
         - { option: 'tomcatShutdownPort', value: '' }
         - { option: 'internalDBUseExistingSchema', value: 'true' }
+        - { option: 'internaldbInstallationType', value: 'internalDBSecondaryNode' }
       when:
         - inventory_hostname == "edge_secondary"
         - not is_installed.stat.exists
