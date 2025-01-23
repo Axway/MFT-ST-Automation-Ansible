@@ -49,7 +49,7 @@
     edge_primary_hostname: "{{ hostvars['edge_primary']['node_hostname'] }}" # ['ansible_default_ipv4']['address']
     edge_primary_ip: "{{ hostvars['edge_primary']['ansible_default_ipv4']['address'] }}"
     edge_secondary_ip: "{{ hostvars['edge_secondary']['ansible_default_ipv4']['address'] }}"
-    edge_secondary_cidr: "{{ hostvars['edge_secondary']['ansible_default_ipv4']['address'] }}/32 }}"
+    edge_secondary_cidr: "{{ hostvars['edge_secondary']['ansible_default_ipv4']['address'] }}/32"
 
 - name: Configure ST Cluster
   hosts: ST_NODES

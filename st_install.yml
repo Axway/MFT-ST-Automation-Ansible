@@ -419,6 +419,9 @@
         - inventory_hostname == "edge_primary"
       tags:
         - test_me
+      notify:
+        - stop internal postgres
+        - start internal postgres
 
     - name: Get the taeh from the ST edge primary
       ansible.builtin.fetch:
@@ -522,3 +525,11 @@
       become_user: root
       ansible.builtin.systemd:
         daemon_reload: true
+    - name: stop internal postgres
+      ansible.builtin.shell:
+        cmd: "sh {{ FILEDRIVEHOME }}/bin/stop_db -f"
+        executable: /usr/bin/bash
+    - name: start internal postgres
+      ansible.builtin.shell:
+        cmd: "sh {{ FILEDRIVEHOME }}/bin/start_db"
+        executable: /usr/bin/bash
