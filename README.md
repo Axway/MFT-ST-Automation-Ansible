@@ -16,14 +16,14 @@ Use them at your own risk and make sure to validate all plays and tasks before d
 
 When all plays  run, they will install and configure SecureTransport Enterprise Cluster deployment with:
 
-- PostgreSQL database (version: 14)
+- PostgreSQL database (version: 16)
 - NFS storage to share between the core nodes (version: 3)
-- OS prerequisites for ST Linux install (version: RHEL 8)
+- OS prerequisites for ST Linux install (version: RHEL 9) -> valid for ST version Sept 2024 & later
 - Two core server nodes in a cluster
 - Two edge nodes
 - Synchronization between the edges
 - Streaming between edges and core servers
-- SecureTransport, non-root install (version: 5.5, any update)
+- SecureTransport, non-root install (version: 5.5, Dec 2024 & later)
 - All available Axway Plugins (version: latest)
 - Initial ST configuration
 - Additional configuration such as repository encryption
@@ -67,21 +67,21 @@ To build at customer's sites, in production or using any sensitive information, 
 ### Servers
 
 You need a total of 6 host machines to run these playbooks.
-All need to run RHEL 8
+All need to run RHEL 9
 
 > The release I have been testing with is:
 
 > NAME="Red Hat Enterprise Linux"
 
-> VERSION="8.7 (Ootpa)"
+> VERSION="9.3 (Plow)"
 
 > ID="rhel"
 
 > ID_LIKE="fedora"
 
-> VERSION_ID="8.7"
+> VERSION_ID="9.3"
 
-> Red Hat Enterprise Linux release 8.7 (Ootpa)
+> "Red Hat Enterprise Linux 9.3 (Plow)
 ## 3. Before you begin
 
 ### Pull this repository
