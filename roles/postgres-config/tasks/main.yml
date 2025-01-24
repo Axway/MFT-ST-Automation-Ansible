@@ -1,28 +1,59 @@
 ---
+#- name: Add PostgreSQL repo
+#  ansible.builtin.yum:
+#    name: https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+#    state: present
+#    disable_gpg_check: true
+#  when: inventory_hostname in groups["database"]
 - name: Add PostgreSQL repo
   ansible.builtin.yum:
-    name: https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+    name: https://download.postgresql.org/pub/repos/yum/reporpms/EL-9-x86_64/pgdg-redhat-repo-latest.noarch.rpm
     state: present
     disable_gpg_check: true
   when: inventory_hostname in groups["database"]
+  tags:
+    - pg16
+
+- name: Disable built-in postgres
+  become: true
+  shell: |
+    dnf -qy module disable postgresql
+  when: inventory_hostname in groups["database"]
+  tags:
+    - pg16
+
+    
 - name: Install PostgreSQL
   ansible.builtin.yum:
     name:
-      - postgresql14
-      - postgresql14-server
+      - postgresql16
+      - postgresql16-server
       - python3-psycopg2
     disablerepo: local-apptream-rpm
     state: present
+  tags:
+    - pg16
   when:
     - inventory_hostname in groups["database"]
+#- name: Install PostgreSQL
+#  ansible.builtin.yum:
+#    name:
+#      - postgresql14
+#      - postgresql14-server
+#      - python3-psycopg2
+#    disablerepo: local-apptream-rpm
+#    state: present
+#  when:
+#    - inventory_hostname in groups["database"]
+    
 - name: Find out if PostgreSQL is initialized
   ansible.builtin.stat:
-    path: /var/lib/pgsql/14/data/pg_hba.conf
+    path: /var/lib/pgsql/16/data/pg_hba.conf
   register: postgres_data
   tags:
     - current
 - name: Initialize PostgreSQL
-  ansible.builtin.command: /usr/pgsql-14/bin/postgresql-14-setup initdb
+  ansible.builtin.command: /usr/pgsql-16/bin/postgresql-16-setup initdb
   register: initialize_db
   when: not postgres_data.stat.exists
   failed_when: "initialize_db.rc not in [0, 1]"
@@ -35,18 +66,28 @@
     - current
 - name: Wait until database is initialized before continuing
   ansible.builtin.wait_for:
-    path: /var/lib/pgsql/14/data/pg_hba.conf
+    path: /var/lib/pgsql/16/data/pg_hba.conf
 - name: Start and enable DB services
   ansible.builtin.service:
     name: "{{ item }}"
     state: started
     enabled: true
   with_items:
-    - postgresql-14
+    - postgresql-16
   tags:
     - current
+- name: Create ST database
+  community.postgresql.postgresql_db:
+    state: present
+    name: "{{ DB_NAME }}"
+    conn_limit: "-1"
+#    owner: "{{ DB_USER }}"
+    encoding: 'UTF-8'
+  become: true
+  become_user: postgres
 - name: Create db user
   community.postgresql.postgresql_user:
+    db: "{{ DB_NAME }}"
     state: present
     name: "{{ DB_USER }}"
     password: "{{ DB_USER_PASSWORD }}"
@@ -54,42 +95,49 @@
     conn_limit: "-1"
   become: true
   become_user: postgres
-- name: Allow md5 connection for the db user
+  environment:
+    PGOPTIONS: "-c password_encryption=scram-sha-256"
+- name: Allow  connection for the db user
   community.postgresql.postgresql_pg_hba:
-    dest: /var/lib/pgsql/14/data/pg_hba.conf
+    dest: /var/lib/pgsql/16/data/pg_hba.conf
     contype: host
     address: all
     databases: all
-    method: md5
+    method: scram-sha-256
     users: "{{ DB_USER }}"
     create: true
   become: true
   become_user: postgres
   notify: Restart postgres
-- name: Create ST database
-  community.postgresql.postgresql_db:
-    state: present
-    name: "{{ DB_NAME }}"
-    conn_limit: "-1"
-    owner: "{{ DB_USER }}"
-    encoding: 'UTF-8'
-  become: true
-  become_user: postgres
+
 - name: Grant db user access to ST db
   community.postgresql.postgresql_privs:
     type: database
+    state: present
     database: "{{ DB_NAME }}"
     roles: "{{ DB_USER }}"
     grant_option: true
-    privs: all
+    privs: ALL
   become: true
   become_user: postgres
+  
+- name: GRANT ALL PRIVILEGES ON SCHEMA public TO ST
+  community.postgresql.postgresql_privs:
+    db: "{{ DB_NAME }}"
+    privs: ALL
+    type: schema
+    objs: public
+    role: "{{ DB_USER }}"
+  become: true
+  become_user: postgres
+  
+  
 - name: Create Folders for tablespaces
   ansible.builtin.file:
     path: "{{ item }}"
     owner: postgres
     group: postgres
-    mode: '0777'
+    mode: '0775'
     state: directory
   loop:
     - "{{ ST_DATA }}"
@@ -119,15 +167,26 @@
     state: present
   become: true
   become_user: postgres
+#- name: We want postgres to listen on the public IP
+#  become: true
+#  become_user: postgres
+#  ansible.builtin.lineinfile:
+#    path: /var/lib/pgsql/14/data/postgresql.conf
+#    regexp: "listen_addresses ="
+#    line: "listen_addresses = '*'"
+#    state: present
+#  notify: Restart postgres
+
 - name: We want postgres to listen on the public IP
   become: true
   become_user: postgres
-  ansible.builtin.lineinfile:
-    path: /var/lib/pgsql/14/data/postgresql.conf
-    regexp: "listen_addresses ="
-    line: "listen_addresses = '*'"
-    state: present
+  community.postgresql.postgresql_set:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+  with_items: "{{ postgresql_options }}"
   notify: Restart postgres
+
+
 - name: Grant privs to the ST user on the tablespaces
   community.postgresql.postgresql_privs:
     database: "{{ DB_NAME }}"
@@ -140,14 +199,6 @@
   become: true
   become_user: postgres
 
-- name: Update PostgreSQL config
-  ansible.builtin.template:
-    src: postgresql.conf.j2
-    dest: /var/lib/pgsql/14/data/postgresql.conf
-    mode: '0750'
-  register: pgconf
-  notify:
-    - Restart postgresql
 
 
 # tasks file for postgres-config

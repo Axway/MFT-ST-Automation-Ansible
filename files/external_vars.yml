@@ -41,14 +41,14 @@ DB_HOST: "{{ hostvars['postgres_db']['node_hostname'] }}"
 DB_PORT: 5432
 
 # THESE CAN REMAIN UNCHANGED
-ST_DATA: /var/lib/pgsql/14/data/pg_tblspc/st_data
-ST_FILETRACKING: /var/lib/pgsql/14/data/pg_tblspc/st_filetracking
-ST_SERVERLOG: /var/lib/pgsql/14/data/pg_tblspc/st_serverlog
+ST_DATA: /var/lib/pgsql/16/data/pg_tblspc/st_data
+ST_FILETRACKING: /var/lib/pgsql/16/data/pg_tblspc/st_filetracking
+ST_SERVERLOG: /var/lib/pgsql/16/data/pg_tblspc/st_serverlog
 
 
 # Specify network volume & export options
 share: "/nfs/share"
 options: "*(rw,sync,no_root_squash,no_wdelay)"
-permission: '0777'
+permission: '0775'
 
 
