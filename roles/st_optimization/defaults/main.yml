@@ -55,8 +55,6 @@ server_config_core:
     parameter_value: 512
   - param_name: EventQueue.SizeLimit.maxQueueSize
     parameter_value: 10240
-  - param_name: EventQueue.maxClusterBatchSize
-    parameter_value: 20
   - param_name: OutboundConnections.maxConnectionsPerHost
     parameter_value: 1500
   - param_name: Cluster.nodeListRefreshTime
