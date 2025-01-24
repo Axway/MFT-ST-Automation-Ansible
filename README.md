@@ -86,6 +86,10 @@ All need to run RHEL 8
 
 ### Pull this repository
 
+### Install Galaxy requirements
+
+`ansible-galaxy collection install -r galaxy-requirements.yml`
+
 ### Update inventory
 - Update the inventory file with your password and hostnames
 - rename the sample file to inventory.ini
