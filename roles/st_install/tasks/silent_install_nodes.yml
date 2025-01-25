@@ -22,7 +22,16 @@
   tags:
     - st_install
     
+
 # This is to fix the issue introduced with RDST-64642
+
+- name: Get the secondary server's IP
+  ansible.builtin.debug:
+    msg: "{{ edge_secondary_cidr }}"
+  when:
+    - inventory_hostname == "core_primary"
+  tags:
+    - test_me_2
 - name: Grant user replication from network edge secondary access for replication
   become: true
   become_user: "{{ ST_USER }}"

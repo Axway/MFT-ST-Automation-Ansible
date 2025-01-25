@@ -42,7 +42,7 @@
     storage_hostname: "{{ hostvars['nfs_storage']['node_hostname'] }}"
 
 - name: Build the ST nodes
-  ansible.builtin.import_playbook: st_install.yml
+#  ansible.builtin.import_playbook: st_install.yml
   vars:
     storage_hostname: "{{ hostvars['nfs_storage']['node_hostname'] }}"
     DB_HOSTNAME: "{{ hostvars['postgres_db']['node_hostname'] }}"  # noqa: var-naming[DB_HOSTNAME]
@@ -50,6 +50,16 @@
     edge_primary_ip: "{{ hostvars['edge_primary']['ansible_default_ipv4']['address'] }}"
     edge_secondary_ip: "{{ hostvars['edge_secondary']['ansible_default_ipv4']['address'] }}"
     edge_secondary_cidr: "{{ hostvars['edge_secondary']['ansible_default_ipv4']['address'] }}/32"
+  hosts: ST_NODES
+  become: true
+  become_user: "{{ ST_USER }}"
+  vars_files:
+    - files/external_vars.yml
+    - files/services_vars.yml
+    - files/download_links.yml
+  roles:
+    - st_install
+
 
 - name: Configure ST Cluster
   hosts: ST_NODES

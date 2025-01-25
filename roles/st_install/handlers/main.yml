@@ -1,0 +1,22 @@
+- name: enable core_services # noqa: name[casing]
+  become: true
+  become_user: root
+  loop: "{{ services_data | selectattr('changed', 'equalto', true) | map(attribute='item') | map(attribute='svc_name') | list }}"
+  ansible.builtin.systemd:
+    enabled: true
+    name: "securetransport_{{ item }}"
+- name: reload systemd # noqa: name[casing]
+  become: true
+  become_user: root
+  ansible.builtin.systemd:
+    daemon_reload: true
+- name: stop internal postgres
+  ansible.builtin.shell:
+    cmd: "sh {{ FILEDRIVEHOME }}/bin/stop_db -f"
+    executable: /usr/bin/bash
+- name: start internal postgres
+  ansible.builtin.shell:
+    cmd: "sh {{ FILEDRIVEHOME }}/bin/start_db"
+    executable: /usr/bin/bash
+
+# handlers file for st_install

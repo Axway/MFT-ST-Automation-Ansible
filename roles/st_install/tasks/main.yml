@@ -1,0 +1,19 @@
+- name: Is ST Installed?
+  ansible.builtin.stat:
+    path: "{{ AXWAY_HOME }}/SecureTransport"
+  register: is_installed
+  tags:
+    - st_install
+- name: Check if installer is there
+  ansible.builtin.stat:
+    path: "{{ INSTALLER_DIR }}/setup.sh"
+  register: installer_file
+  when:
+    - not is_installed.stat.exists
+  tags:
+    - st_install
+- include_tasks: download_extract_files.yml
+- include_tasks: prepare_properties_files.yml
+- include_tasks: silent_install_nodes.yml
+- include_tasks: download_plugins.yml
+# tasks file for st_install

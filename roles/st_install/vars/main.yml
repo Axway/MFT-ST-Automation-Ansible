@@ -1,0 +1,9 @@
+plugins:
+  - "{{ AZURE_FILE_PLUGIN }}"
+  - "{{ s3_PLUGIN }}"
+  - "{{ JMS_PLUGIN }}"
+  - "{{ AZURE_BLOB_PLUGIN }}"
+  - "{{ GOOGLE_CLOUD_PLUGIN }}"
+  - "{{ SHAREPOINT_PLUGIN }}"
+  - "{{ SMB_PLUGIN }}"
+# vars file for st_install
