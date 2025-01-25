@@ -29,7 +29,7 @@
     
 - name: Stop all
   become: true
-  ansible.builtin.command: "sh {{ FILEDRIVEHOME }}/bin/stop_all"
+  ansible.builtin.command: "sh {{ FILEDRIVEHOME }}/bin/stop_all -f"
   args:
     chdir: "{{ FILEDRIVEHOME }}/bin/"
 

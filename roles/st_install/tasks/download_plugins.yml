@@ -1,6 +1,6 @@
 - name: Download and extract the Azure FileStorage plugin
   ansible.builtin.unarchive:
-    src: "{{ item }}"
+    src: "{{ item.value }}"
     dest: "{{ AXWAY_HOME }}/SecureTransport/plugins/transferSites/"
     mode: '0755'
     group: "{{ ST_GROUP }}"
@@ -12,4 +12,11 @@
   tags:
     - st_install
     - axway_lab_specific
-  with_items: "{{ plugins }}"
+  loop: "{{ plugins | dict2items }}"
+  
+#- name: "loop through list from a variable"
+#  ansible.builtin.debug:
+#
+#
+#    msg: "KEY: {{ item.key }}, VALUE: {{ item.value }}"
+#  loop: "{{ plugins | dict2items }}"

@@ -20,7 +20,7 @@
 - name: stop_all # noqa: name[casing]
   become: true
   become_user: "{{ ST_USER }}"
-  ansible.builtin.command: "sh {{ FILEDRIVEHOME }}/bin/stop_all"
+  ansible.builtin.command: "sh {{ FILEDRIVEHOME }}/bin/stop_all -f"
   args:
     chdir: "{{ FILEDRIVEHOME }}/bin/"
     executable: /bin/bash

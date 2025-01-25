@@ -4,13 +4,14 @@
 # or credentials to download. This is an example for a simple HTTP download.
 
 
-artifactory: https://insert-address-here
+artifactory: https://artifactory-ptx.ecd.axway.int/artifactory/securetransport-generic-preprod-sofi/5.5/
 
-ST_DOWNLOAD_LINK: "{{ artifactory}}{{ st_install_file }}"
-AZURE_FILE_PLUGIN: "{{ artifactory}}securetransport-plugins-site-azurefile-1.1.3-100.zip"
-s3_PLUGIN: "{{ artifactory}}securetransport-plugins-site-s3-2.0.4-231.zip"
-JMS_PLUGIN: "{{ artifactory}}securetransport-plugins-site-jms-1.0.6-73.zip"
-AZURE_BLOB_PLUGIN: "{{ artifactory}}securetransport-plugins-site-azureblob-2.0.0-127.zip"
-GOOGLE_CLOUD_PLUGIN: "{{ artifactory}}securetransport-plugins-site-googlecloudstorage-1.0.4-654.zip"
-SHAREPOINT_PLUGIN: "{{ artifactory}}securetransport-plugins-site-sharepoint-2.0.2-124.zip"
-SMB_PLUGIN: "{{ artifactory}}securetransport-plugins-site-smb-2.1.2-122.zip"
+plugins:
+  ST_DOWNLOAD_LINK: "{{ artifactory}}{{ st_install_file }}"
+  AZURE_FILE_PLUGIN: "{{ artifactory}}securetransport-plugins-site-azurefile-1.1.3-100.zip"
+  s3_PLUGIN: "{{ artifactory}}securetransport-plugins-site-s3-2.0.4-231.zip"
+  JMS_PLUGIN: "{{ artifactory}}securetransport-plugins-site-jms-1.0.6-73.zip"
+  AZURE_BLOB_PLUGIN: "{{ artifactory}}securetransport-plugins-site-azureblob-2.0.0-127.zip"
+  GOOGLE_CLOUD_PLUGIN: "{{ artifactory}}securetransport-plugins-site-googlecloudstorage-1.0.4-654.zip"
+  SHAREPOINT_PLUGIN: "{{ artifactory}}securetransport-plugins-site-sharepoint-2.0.2-124.zip"
+  SMB_PLUGIN: "{{ artifactory}}securetransport-plugins-site-smb-2.1.2-122.zip"

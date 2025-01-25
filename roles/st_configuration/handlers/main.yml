@@ -3,7 +3,7 @@
   become: true
   become_user: "{{ ST_USER }}"
   ansible.builtin.shell:
-    cmd: "sh {{ FILEDRIVEHOME }}/bin/stop_all"
+    cmd: "sh {{ FILEDRIVEHOME }}/bin/stop_all -f"
     executable: /usr/bin/bash
 
 - name: Wait for stop
