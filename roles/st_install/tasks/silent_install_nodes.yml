@@ -1,0 +1,96 @@
+- name: SilentInstall SecureTransport Primaries
+  become: true
+  become_user: "{{ ST_USER }}"
+  ansible.builtin.command: "{{ INSTALLER_DIR }}/setup.sh -Xmx 6G -s {{ INSTALLER_DIR }}/{{ installer_properties }}"
+  changed_when: false
+  environment:
+    TEMPORARY_DIR: /tmp
+  args:
+    chdir: "{{ INSTALLER_DIR }}"
+  when:
+    - inventory_hostname == "edge_primary" or inventory_hostname == "core_primary"
+    - not is_installed.stat.exists
+  tags:
+    - st_install
+
+- name: Get the taeh from the ST server primary
+  ansible.builtin.fetch:
+    src: "{{ AXWAY_HOME }}/SecureTransport/bin/taeh"
+    dest: files/core/
+    flat: true
+  when: inventory_hostname == "core_primary"
+  tags:
+    - st_install
+    
+# This is to fix the issue introduced with RDST-64642
+- name: Grant user replication from network edge secondary access for replication
+  become: true
+  become_user: "{{ ST_USER }}"
+  postgresql_pg_hba:
+    dest: "{{ FILEDRIVEHOME }}/var/db/postgresql/data/pg_hba.conf"
+    contype: host
+    users: "{{ ST_USER }}"
+    source: "{{ edge_secondary_cidr }}"
+    databases: st
+    method: scram-sha-256
+  when:
+    - inventory_hostname == "edge_primary"
+  tags:
+    - test_me
+  notify:
+    - stop internal postgres
+    - start internal postgres
+- name: Wait until database is initialized before continuing
+  become: true
+  become_user: "{{ ST_USER }}"
+  ansible.builtin.wait_for:
+    path: "{{ FILEDRIVEHOME }}/var/run/db.pid"
+    state: present
+  when:
+    - inventory_hostname == "edge_primary"
+
+- name: Get the taeh from the ST edge primary
+  ansible.builtin.fetch:
+    src: "{{ AXWAY_HOME }}/SecureTransport/bin/taeh"
+    dest: files/edge/
+    flat: true
+  when: inventory_hostname == "edge_primary"
+  tags:
+    - st_install
+
+- name: Push the taeh file to the secondary core
+  ansible.builtin.copy:
+    src: files/core/taeh
+    dest: "{{ INSTALLER_DIR }}/taeh"
+    owner: "{{ ST_USER }}"
+    group: "{{ ST_GROUP }}"
+    mode: '0755'
+  when: inventory_hostname == "core_secondary"
+  tags:
+    - st_install
+
+- name: Push the taeh file to the secondary edge
+  ansible.builtin.copy:
+    src: files/edge/taeh
+    dest: "{{ INSTALLER_DIR }}/taeh"
+    owner: "{{ ST_USER }}"
+    group: "{{ ST_GROUP }}"
+    mode: '0755'
+  when: inventory_hostname == "edge_secondary"
+  tags:
+    - st_install
+
+- name: SilentInstall SecureTransport Secondaries
+  become: true
+  become_user: "{{ ST_USER }}"
+  ansible.builtin.command: "{{ INSTALLER_DIR }}/setup.sh -Xmx 6G -s {{ INSTALLER_DIR }}/{{ installer_properties }}"
+  changed_when: false
+  environment:
+    TEMPORARY_DIR: /tmp
+  args:
+    chdir: "{{ INSTALLER_DIR }}"
+  when:
+    - inventory_hostname == "edge_secondary" or inventory_hostname == "core_secondary"
+    - not is_installed.stat.exists
+  tags:
+    - st_install

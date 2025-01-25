@@ -17,3 +17,4 @@
 - Change the Edges install parameters to accomodate the modernized SC
 - Validated install with RHEL 9
 - Changed the DB version to PostgreSQL 16
+- Optimized tablespace creation

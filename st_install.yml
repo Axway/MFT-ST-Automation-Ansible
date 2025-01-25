@@ -422,6 +422,14 @@
       notify:
         - stop internal postgres
         - start internal postgres
+    - name: Wait until database is initialized before continuing
+      become: true
+      become_user: "{{ ST_USER }}"
+      ansible.builtin.wait_for:
+        path: "{{ FILEDRIVEHOME }}/var/run/db.pid"
+        state: present
+      when:
+        - inventory_hostname == "edge_primary"
 
     - name: Get the taeh from the ST edge primary
       ansible.builtin.fetch:

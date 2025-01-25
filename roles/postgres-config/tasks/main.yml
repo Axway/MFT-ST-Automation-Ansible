@@ -145,37 +145,29 @@
     - "{{ ST_SERVERLOG }}"
 - name: Create a new tablespace called st_data
   community.postgresql.postgresql_tablespace:
-    name: st_data
+    name: "{{ item.name }}"
     owner: "{{ DB_USER }}"
-    location: "{{ ST_DATA }}"
+    location: "{{ item.value }}"
     state: present
+  with_items: "{{ postgresql_tablespaces }}"
   become: true
   become_user: postgres
-- name: Create a new tablespace called st_serverlog
-  community.postgresql.postgresql_tablespace:
-    name: st_serverlog
-    owner: "{{ DB_USER }}"
-    location: "{{ ST_SERVERLOG }}"
-    state: present
-  become: true
-  become_user: postgres
-- name: Create a new tablespace called st_filetracking
-  community.postgresql.postgresql_tablespace:
-    name: st_filetracking
-    owner: "{{ DB_USER }}"
-    location: "{{ ST_FILETRACKING }}"
-    state: present
-  become: true
-  become_user: postgres
-#- name: We want postgres to listen on the public IP
+#- name: Create a new tablespace called st_serverlog
+#  community.postgresql.postgresql_tablespace:
+#    name: st_serverlog
+#    owner: "{{ DB_USER }}"
+#    location: "{{ ST_SERVERLOG }}"
+#    state: present
 #  become: true
 #  become_user: postgres
-#  ansible.builtin.lineinfile:
-#    path: /var/lib/pgsql/14/data/postgresql.conf
-#    regexp: "listen_addresses ="
-#    line: "listen_addresses = '*'"
+#- name: Create a new tablespace called st_filetracking
+#  community.postgresql.postgresql_tablespace:
+#    name: st_filetracking
+#    owner: "{{ DB_USER }}"
+#    location: "{{ ST_FILETRACKING }}"
 #    state: present
-#  notify: Restart postgres
+#  become: true
+#  become_user: postgres
 
 - name: We want postgres to listen on the public IP
   become: true

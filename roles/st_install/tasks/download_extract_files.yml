@@ -1,0 +1,14 @@
+- name: Download and extract the ST installer
+  ansible.builtin.unarchive:
+    src: "{{ ST_DOWNLOAD_LINK }}"
+    dest: "{{ INSTALLER_DIR }}"
+    mode: '0755'
+    group: "{{ ST_GROUP }}"
+    owner: "{{ ST_USER }}"
+    validate_certs: false
+    remote_src: true
+  when:
+    - (installer_file.stat.exists is undefined) or (not installer_file.stat.exists)
+    - not is_installed.stat.exists
+  tags:
+    - st_install

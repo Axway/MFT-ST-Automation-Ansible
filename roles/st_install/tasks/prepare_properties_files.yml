@@ -1,0 +1,331 @@
+- name: Find the name of the archive that contains the JRE
+  ansible.builtin.find:
+    paths: "{{ INSTALLER_DIR }}/Java/linux-x86"
+    patterns: 'jre*.zip'
+  register: file_to_copy
+  tags:
+    - st_install
+  when:
+    - not is_installed.stat.exists
+
+
+- name: Find the name of the Axway_Installer
+  ansible.builtin.find:
+    paths: "{{ INSTALLER_DIR }}/Components/Configuration"
+    patterns: 'Install_Axway_Installer*.properties'
+  register: axway_installer
+  tags:
+    - st_install
+  when:
+    - not is_installed.stat.exists
+
+- name: Filter the Axway Installer name and set a variable
+  ansible.builtin.set_fact:
+    installer_properties: "{{ axway_installer.files.0.path | basename }}"
+  when:
+    - not is_installed.stat.exists
+
+
+- name: Find the name of the ST_Installer
+  ansible.builtin.find:
+    paths: "{{ INSTALLER_DIR }}/Components/Configuration/"
+    patterns: 'Install_SecureTransport*.properties'
+  register: silent_file
+  when:
+    - not is_installed.stat.exists
+  tags:
+    - st_install
+
+- name: Filter the ST Installer name and set a variable
+  ansible.builtin.set_fact:
+    st_silentfile_properties: "{{ silent_file.files.0.path | basename }}"
+  when:
+    - not is_installed.stat.exists
+
+- name: Unarchive the JRE
+  ansible.builtin.unarchive:
+    src: "{{ file_to_copy['files'][0]['path'] }}"
+    dest: "{{ INSTALLER_DIR }}/JRE"
+    group: "{{ ST_GROUP }}"
+    owner: "{{ ST_USER }}"
+    mode: '0755'
+    remote_src: true
+  tags:
+    - st_install
+  when:
+    - not is_installed.stat.exists
+
+- name: Ansible copy files remote to remote
+  become: true
+  become_user: "{{ ST_USER }}"
+  ansible.builtin.copy:
+    src: "{{ INSTALLER_DIR }}/Components/Configuration/{{ item }}"
+    dest: "{{ INSTALLER_DIR }}"
+    mode: '0755'
+    remote_src: true
+  with_items:
+    ["{{ installer_properties }}", "{{ st_silentfile_properties }}"]
+  tags:
+    - st_install
+  when:
+    - not is_installed.stat.exists
+
+- name: Update Install_Axway_Installer properties
+  become: true
+  become_user: "{{ ST_USER }}"
+  ansible.builtin.lineinfile:
+    path: "{{ INSTALLER_DIR }}/{{ installer_properties }}"
+    regexp: '^{{ item.option }} ='
+    line: "{{ item.option }} = {{ item.value }}"
+  with_items:
+    - { option: 'InstallationLogicalName', value: 'SecureTransport' }
+    - { option: 'InstallDir', value: '{{ AXWAY_HOME }}/Axway' }
+    - { option: 'AllAxwayComps32', value: 'false' }
+    - { option: 'AllAxwayComps64', value: 'true' }
+    - { option: 'IncludeFiles', value: '' }
+    - { option: 'IncludeFiles.SecureTransport', value: '{{ st_silentfile_properties }}' }
+  tags:
+    - st_install
+  when:
+    - not is_installed.stat.exists
+- name: Delete unneeded items from the Axway Installer File
+  ansible.builtin.lineinfile:
+    path: "{{ INSTALLER_DIR }}/{{ installer_properties }}"
+    state: absent
+    regexp: '^License'
+  when:
+    - not is_installed.stat.exists
+
+
+- name: Update Install_SecureTransport_V5.5.properties for all nodes
+  become: true
+  become_user: "{{ ST_USER }}"
+  ansible.builtin.lineinfile:
+    path: "{{ INSTALLER_DIR }}/{{ st_silentfile_properties }}"
+    regexp: '^{{ item.option }} ='
+    line: "{{ item.option }} = {{ item.value }}"
+  with_items:
+    - { option: 'Component.ACCEPT_GENERAL_CONDITIONS', value: 'Yes' }
+    - { option: 'Component.JavaHome', value: '{{ AXWAY_HOME }}/Axway/Java/linux-x86/{{ (file_to_copy.files.0.path |basename).rsplit(".",1)[0] }}' }
+    - { option: 'SelectedBitArchitecture', value: '64' }
+    - { option: 'InstMode', value: 'Install' }
+    - { option: 'SecureTransport', value: 'true' }
+    - { option: 'SecureTransport.Type', value: 'Module' }
+    - { option: 'SecureTransport.ModuleType', value: 'Installed' }
+    - { option: 'SecureTransport.LogicalName', value: 'SecureTransport' }
+    - { option: 'SecureTransport.ParentName', value: 'null' }
+    - { option: 'SecureTransport.Title', value: 'Axway SecureTransport V5.5' }
+    - { option: 'Server.Type', value: 'Module' }
+    - { option: 'Server.LogicalName', value: 'Server' }
+    - { option: 'Server.ParentName', value: 'SecureTransport' }
+    - { option: 'Server.Title', value: 'Server' }
+    - { option: 'Edge.Type', value: 'Module' }
+    - { option: 'Edge.LogicalName', value: 'Edge' }
+    - { option: 'Edge.ParentName', value: 'SecureTransport' }
+    - { option: 'Edge.Title', value: 'Edge' }
+    - { option: 'ServerDocker', value: 'false' }
+    - { option: 'ServerDocker.Type', value: 'Module' }
+    - { option: 'ServerDocker.ModuleType', value: 'NotInstalled' }
+    - { option: 'ServerDocker.LogicalName', value: 'ServerDocker' }
+    - { option: 'ServerDocker.ParentName', value: 'SecureTransport' }
+    - { option: 'ServerDocker.Title', value: 'ServerDocker' }
+    - { option: 'InstallDir', value: '{{ AXWAY_HOME }}/SecureTransport/' }
+    - { option: 'userName', value: '{{ ST_USER }}' }
+    - { option: 'isNonRootInstall', value: 'true' }
+    - { option: 'EdgeDocker', value: 'false' }
+    - { option: 'EdgeDocker.Type', value: 'Module' }
+    - { option: 'EdgeDocker.ModuleType', value: 'NotInstalled' }
+    - { option: 'EdgeDocker.LogicalName', value: 'EdgeDocker' }
+    - { option: 'EdgeDocker.ParentName', value: 'SecureTransport' }
+    - { option: 'EdgeDocker.Title', value: 'EdgeDocker' }
+    - { option: 'sslAdminPort', value: '{{ SSL_ADMIN_PORT }}' }
+    - { option: 'sslAdminPort.Type', value: 'Integer' }
+    - { option: 'enableLogRotation', value: 'true' }
+    - { option: 'SecretFilePath', value: '' }
+    - { option: 'clusterNodeValue', value: '{{ hostvars[inventory_hostname].ansible_default_ipv4.address }}' }
+    - { option: 'tomcatShutdownPort', value: '8005' }
+    - { option: 'tomcatShutdownPort.Type', value: 'Integer' }
+  when:
+    - not is_installed.stat.exists
+
+- name: Configure Install_SecureTransport_V5.5.properties for ST Core
+  become: true
+  become_user: "{{ ST_USER }}"
+  ansible.builtin.lineinfile:
+    path: "{{ INSTALLER_DIR }}/{{ st_silentfile_properties }}"
+    regexp: '^{{ item.option }} ='
+    line: "{{ item.option }} = {{ item.value }}"
+  with_items:
+    - { option: 'Server', value: 'true' }
+    - { option: 'Server.ModuleType', value: 'Installed' }
+    - { option: 'Edge', value: 'false' }
+    - { option: 'Edge.ModuleType', value: 'NotInstalled' }
+    - { option: 'dbType', value: 'usePostgreSQLExternal' }
+    - { option: 'postgrePassword.Format', value: 'DefenceV1' }
+    - { option: 'postgrePassword', value: '' }
+    - { option: 'postgreHost', value: '{{ DB_HOST }}' }
+    - { option: 'postgreHost.Type', value: 'HostName' }
+    - { option: 'postgrePort', value: '{{ DB_PORT }}' }
+    - { option: 'postgrePort.Type', value: 'Integer' }
+    - { option: 'postgreLoginName', value: '{{ DB_USER }}' }
+    - { option: 'postgreDatabaseName', value: '{{ DB_NAME }}' }
+    - { option: 'postgreUseSecureConnection', value: 'false' }
+    - { option: 'postgreTrustStoreFilePath', value: '' }
+    - { option: 'externalDBTrustStore', value: '' }
+    - { option: 'externalDBUseSecureConnection', value: 'false' }
+    - { option: 'externalDBUseExistingSchema', value: 'false' }
+    - { option: 'postgreUseExistingSchema', value: 'false' }
+  when:
+    - inventory_hostname in groups["cores"]
+    - not is_installed.stat.exists
+  tags:
+    - st_install
+
+- name: Update DB password in Install_SecureTransport_V5.5.properties for ST Core
+  become: true
+  become_user: "{{ ST_USER }}"
+  ansible.builtin.shell: "{{ INSTALLER_DIR }}/Tools/SilentFileEditor/SilentFileEditor.sh \
+      {{ INSTALLER_DIR }}/{{ st_silentfile_properties }} postgrePassword {{ DB_USER_PASSWORD }} -c"
+  args:
+    chdir: "{{ INSTALLER_DIR }}/Tools/SilentFileEditor/"
+    executable: /bin/bash
+  environment:
+    JAVA_HOME: "{{ INSTALLER_DIR }}/JRE"
+  register: user_cmd_result
+  changed_when: false
+  when:
+    - inventory_hostname in groups["cores"]
+    - not is_installed.stat.exists
+  tags:
+    - st_install2
+
+
+- name: Configure Install_SecureTransport_V5.5.properties for ST Edge
+  become: true
+  become_user: "{{ ST_USER }}"
+  ansible.builtin.lineinfile:
+    path: "{{ INSTALLER_DIR }}/{{ st_silentfile_properties }}"
+    regexp: '^{{ item.option }} ='
+    line: "{{ item.option }} = {{ item.value }}"
+  with_items:
+    - { option: 'Server', value: 'false' }
+    - { option: 'Server.ModuleType', value: 'NotInstalled' }
+    - { option: 'Edge', value: 'true' }
+    - { option: 'Edge.ModuleType', value: 'Installed' }
+    - { option: 'dbType', value: 'useDBLocal' }
+    - { option: 'internalDBPort', value: '54321' }
+    - { option: 'internalDBPort.Type', value: 'IPPortOwner' }
+    - { option: 'internalDBPort.Max', value: '65535' }
+    - { option: 'internalDBPort.Min', value: '1024' }
+    - { option: 'internalDBUseSecureConnection', value: 'true' }
+    - { option: 'internalDBAutoGenerateCertificates', value: 'true' }
+    - { option: 'internalDBCaPath', value: '' }
+    - { option: 'internalDBServerKeyPath', value: '' }
+    - { option: 'internalDBServerCertPath', value: '' }
+    - { option: 'externalDBUseExistingSchema', value: 'false' }
+    - { option: 'externalDBUseSecureConnection', value: 'false' }
+    - { option: 'databaseUserName', value: '{{ ST_USER }}' }
+    - { option: 'internalDBPrimaryHost', value: '{{ edge_primary_ip }}' }
+    - { option: 'internalDBPassword.Format', value: 'DefenceV1' }
+    - { option: 'internalDBReplicationPassword.Format', value: 'DefenceV1' }
+    - { option: 'internalDBHostsAutoRegister', value: '{{ edge_primary_ip }},{{ edge_secondary_ip }}' }
+    - { option: 'enableDBFailover', value: 'true' }
+    - { option: 'internalDBDataDir', value: '{{ FILEDRIVEHOME }}/var/db/postgresql/' }
+    - { option: 'internalDBDataDir.Type', value: 'Directory' }
+    - { option: 'internalDBReplicationEnabled', value: 'true' }
+    - { option: 'internalDBPassword', value: '' }
+    - { option: 'internalDBReplicationPassword', value: '' }
+
+  when:
+    - inventory_hostname in groups["edges"]
+    - not is_installed.stat.exists
+  tags:
+    - st_install
+    
+- name: Configure Install_SecureTransport_V5.5.properties for ST Edge Primary
+  become: true
+  become_user: "{{ ST_USER }}"
+  ansible.builtin.lineinfile:
+    path: "{{ INSTALLER_DIR }}/{{ st_silentfile_properties }}"
+    regexp: '^{{ item.option }} ='
+    line: "{{ item.option }} = {{ item.value }}"
+  with_items:
+    - { option: 'internaldbInstallationType', value: 'internalDBPrimaryNode' }
+    - { option: 'internalDBUseExistingSchema', value: 'false' }
+  when:
+    - inventory_hostname == "edge_primary"
+    - not is_installed.stat.exists
+  tags:
+    - st_install
+
+    
+- name: Configure Install_SecureTransport_V5.5.properties for ST Core Secondary
+  become: true
+  become_user: "{{ ST_USER }}"
+  ansible.builtin.lineinfile:
+    path: "{{ INSTALLER_DIR }}/{{ st_silentfile_properties }}"
+    regexp: '^{{ item.option }} ='
+    line: "{{ item.option }} = {{ item.value }}"
+  with_items:
+    - { option: 'externalDBUseExistingSchema', value: 'true' }
+    - { option: 'postgreUseExistingSchema', value: 'true' }
+    - { option: 'SecretFilePath', value: '{{ INSTALLER_DIR }}/taeh' }
+    - { option: 'SecretFilePath.Type', value: 'File' }
+    - { option: 'sslAdminPort', value: '' }
+    - { option: 'tomcatShutdownPort', value: '' }
+  when:
+    - inventory_hostname == "core_secondary"
+    - not is_installed.stat.exists
+  tags:
+    - st_install
+
+- name: Configure Install_SecureTransport_V5.5.properties for ST Edge Secondary
+  become: true
+  become_user: "{{ ST_USER }}"
+  ansible.builtin.lineinfile:
+    path: "{{ INSTALLER_DIR }}/{{ st_silentfile_properties }}"
+    regexp: '^{{ item.option }} ='
+    line: "{{ item.option }} = {{ item.value }}"
+  with_items:
+    - { option: 'SecretFilePath', value: '{{ INSTALLER_DIR }}/taeh' }
+    - { option: 'SecretFilePath.Type', value: 'File' }
+    - { option: 'tomcatShutdownPort', value: '' }
+    - { option: 'internalDBUseExistingSchema', value: 'true' }
+    - { option: 'internaldbInstallationType', value: 'internalDBSecondaryNode' }
+  when:
+    - inventory_hostname == "edge_secondary"
+    - not is_installed.stat.exists
+  tags:
+    - st_install
+    
+- name: Update DB password in Install_SecureTransport_V5.5.properties for ST edge
+  become: true
+  become_user: "{{ ST_USER }}"
+  ansible.builtin.shell: "{{ INSTALLER_DIR }}/Tools/SilentFileEditor/SilentFileEditor.sh \
+      {{ INSTALLER_DIR }}/{{ st_silentfile_properties }} internalDBPassword {{ DB_USER_PASSWORD }} -c"
+  args:
+    chdir: "{{ INSTALLER_DIR }}/Tools/SilentFileEditor/"
+    executable: /bin/bash
+  environment:
+    JAVA_HOME: "{{ INSTALLER_DIR }}/JRE"
+  register: user_cmd_result_db_edges
+  changed_when: false
+  when:
+    - inventory_hostname in groups["edges"]
+    - not is_installed.stat.exists
+- name: Update replica password in Install_SecureTransport_V5.5.properties for ST edge
+  become: true
+  become_user: "{{ ST_USER }}"
+  ansible.builtin.shell: "{{ INSTALLER_DIR }}/Tools/SilentFileEditor/SilentFileEditor.sh \
+      {{ INSTALLER_DIR }}/{{ st_silentfile_properties }} internalDBReplicationPassword {{ DB_USER_PASSWORD }} -c"
+  args:
+    chdir: "{{ INSTALLER_DIR }}/Tools/SilentFileEditor/"
+    executable: /bin/bash
+  environment:
+    JAVA_HOME: "{{ INSTALLER_DIR }}/JRE"
+  register: user_cmd_result_replica_edges
+  changed_when: false
+  when:
+    - inventory_hostname in groups["edges"]
+    - not is_installed.stat.exists
+
