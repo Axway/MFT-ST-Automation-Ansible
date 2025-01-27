@@ -5,9 +5,8 @@
 
 
 artifactory: https://artifactory-ptx.ecd.axway.int/artifactory/securetransport-generic-preprod-sofi/5.5/
-
+ST_DOWNLOAD_LINK: "{{ artifactory}}{{ st_install_file }}"
 plugins:
-  ST_DOWNLOAD_LINK: "{{ artifactory}}{{ st_install_file }}"
   AZURE_FILE_PLUGIN: "{{ artifactory}}securetransport-plugins-site-azurefile-1.1.3-100.zip"
   s3_PLUGIN: "{{ artifactory}}securetransport-plugins-site-s3-2.0.4-231.zip"
   JMS_PLUGIN: "{{ artifactory}}securetransport-plugins-site-jms-1.0.6-73.zip"

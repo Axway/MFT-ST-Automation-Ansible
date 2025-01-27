@@ -25,13 +25,16 @@
 
 # This is to fix the issue introduced with RDST-64642
 
-- name: Get the secondary server's IP
-  ansible.builtin.debug:
-    msg: "{{ edge_secondary_cidr }}"
+- name: Revoke access from local user mary on database mydb.
+  postgresql_pg_hba:
+    dest: "{{ FILEDRIVEHOME }}/var/db/postgresql/data/pg_hba.conf"
+    contype: host
+    source: "{{ edge_secondary_cidr }}"
+    databases: st
+    users: "${internal_db.username}"
+    state: absent
   when:
-    - inventory_hostname == "core_primary"
-  tags:
-    - test_me_2
+    - inventory_hostname == "edge_primary"
 - name: Grant user replication from network edge secondary access for replication
   become: true
   become_user: "{{ ST_USER }}"
@@ -47,8 +50,26 @@
   tags:
     - test_me
   notify:
-    - stop internal postgres
+    - "stop_all"
+    - Wait for db stop
     - start internal postgres
+- name: stop_all
+  become: true
+  become_user: "{{ ST_USER }}"
+  ansible.builtin.shell:
+    cmd: "sh {{ FILEDRIVEHOME }}/bin/stop_all -f"
+    executable: /usr/bin/bash
+  when:
+    - inventory_hostname == "edge_primary"
+    
+- name: Start all
+  become: true
+  become_user: "{{ ST_USER }}"
+  ansible.builtin.shell:
+    cmd: "{{ FILEDRIVEHOME }}/bin/start_all"
+    executable: /usr/bin/bash
+  when:
+    - inventory_hostname == "edge_primary"
 - name: Wait until database is initialized before continuing
   become: true
   become_user: "{{ ST_USER }}"
@@ -57,6 +78,16 @@
     state: present
   when:
     - inventory_hostname == "edge_primary"
+- name: PostgreSQL ping dbsrv server
+  community.postgresql.postgresql_ping:
+    db: "{{ DB_NAME }}"
+    login_host: "{{ DB_HOSTNAME }}"
+    login_user: "{{ DB_USER }}"
+    login_password: "{{ DB_USER_PASSWORD}}"
+  tags:
+    - db_ch
+  register: result
+  when: inventory_hostname == "edge_primary"
 
 - name: Get the taeh from the ST edge primary
   ansible.builtin.fetch:

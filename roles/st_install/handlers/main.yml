@@ -18,5 +18,41 @@
   ansible.builtin.shell:
     cmd: "sh {{ FILEDRIVEHOME }}/bin/start_db"
     executable: /usr/bin/bash
+    
+- name: Wait for db stop
+  ansible.builtin.wait_for:
+    host: 0.0.0.0
+    port: 54321
+    state: drained
+    
+- name: Start all
+  become: true
+  become_user: "{{ ST_USER }}"
+  ansible.builtin.shell:
+    cmd: "{{ FILEDRIVEHOME }}/bin/start_all"
+    executable: /usr/bin/bash
+  register: start_services
+
+
+- name: Wait for start
+  ansible.builtin.wait_for:
+    host: 0.0.0.0
+    port: "{{ SSL_ADMIN_PORT }}"
+    delay: 10
+    
+- name: Stop all
+  become: true
+  become_user: "{{ ST_USER }}"
+  ansible.builtin.shell:
+    cmd: "sh {{ FILEDRIVEHOME }}/bin/stop_all -f"
+    executable: /usr/bin/bash
+    
+- name: stop_all
+  become: true
+  become_user: "{{ ST_USER }}"
+  ansible.builtin.shell:
+    cmd: "sh {{ FILEDRIVEHOME }}/bin/stop_all -f"
+    executable: /usr/bin/bash
+
 
 # handlers file for st_install

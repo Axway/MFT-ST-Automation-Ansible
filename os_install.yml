@@ -19,6 +19,7 @@
           - telnet
           - nfs4-acl-tools
           - python3-lxml
+          - python3-psycopg2
 
         state: present
         update_cache: true

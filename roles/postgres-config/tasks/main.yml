@@ -29,6 +29,7 @@
       - postgresql16
       - postgresql16-server
       - python3-psycopg2
+    
     disablerepo: local-apptream-rpm
     state: present
   tags:
