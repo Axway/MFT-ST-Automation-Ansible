@@ -49,10 +49,7 @@
     - inventory_hostname == "edge_primary"
   tags:
     - test_me
-  notify:
-    - "stop_all"
-    - Wait for db stop
-    - start internal postgres
+
 - name: stop_all
   become: true
   become_user: "{{ ST_USER }}"
