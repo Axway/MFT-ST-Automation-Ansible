@@ -113,7 +113,7 @@ The list of playbooks and roles that will run by default is:
 
 - `storage_install` [playbook]: Installs the nfs-server binaries, configures the server and exports the shared folder
 - `postgres-config` [role]: Installs and configures the shared database
-- `os_install` [playbook]: Installs and configures all RHEL 8 prerequisites for ST
+- `os_install` [role]: Installs and configures all RHEL 8 prerequisites for ST
 - `st_install` [playbook]: Downloads and installs the ST software, plugins and services
 - `st_configuration` [role]: Configures streaming, synchronization, and ST initial configuration
 - `st_tuning`[role]: Applies the base ST tuning (memory allocation, c3p0 and relevant server configuration parameters)
