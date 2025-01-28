@@ -1,3 +1,5 @@
+
+
 - name: Generate the internal CA
   ansible.builtin.uri:
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates
@@ -85,6 +87,24 @@
   tags:
     - certificates
 
+- name: Set the overwrite to true if current_remote_ca.json.result exists
+  ansible.builtin.set_fact:
+    remote_ca_overwrite: true
+  when:
+    - inventory_hostname == "core_primary" or inventory_hostname == "edge_primary"
+    - current_remote_ca.json.result | length > 0
+    - '"remote_ca" in current_remote_ca.json.result[0]["name"]'
+  tags:
+    - certificates
+
+- name: Set the overwrite to false if current_remote_ca.json.result does not exist
+  ansible.builtin.set_fact:
+    remote_ca_overwrite: false
+  when:
+    - inventory_hostname == "core_primary" or inventory_hostname == "edge_primary"
+    - current_remote_ca.json.result.0 is not defined
+  tags:
+    - certificates
 
 - name: Assign cert status
   ansible.builtin.set_fact:
@@ -117,13 +137,6 @@
   tags:
     - certificates
 
-- name: Read repencrypt value
-  ansible.builtin.debug:
-    msg: "{{ repencrypt_value.json['values'] }}"
-  when:
-    - inventory_hostname == "core_primary"
-  tags:
-    - certificates
 
 - name: Generate core certs that were not present
   vars:

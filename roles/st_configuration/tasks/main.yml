@@ -366,24 +366,7 @@
   tags:
     - rest_api
 
-- name: Set the overwrite to true if current_remote_ca.json.result exists
-  ansible.builtin.set_fact:
-    remote_ca_overwrite: true
-  when:
-    - inventory_hostname == "core_primary" or inventory_hostname == "edge_primary"
-    - current_remote_ca.json.result | length > 0
-    - '"remote_ca" in current_remote_ca.json.result[0]["name"]'
-  tags:
-    - certificates
 
-- name: Set the overwrite to false if current_remote_ca.json.result does not exist
-  ansible.builtin.set_fact:
-    remote_ca_overwrite: false
-  when:
-    - inventory_hostname == "core_primary" or inventory_hostname == "edge_primary"
-    - current_remote_ca.json.result.0 is not defined
-  tags:
-    - certificates2
 
 
 - name: Restart everything

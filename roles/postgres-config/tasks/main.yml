@@ -82,7 +82,7 @@
   environment:
     PGOPTIONS: "-c password_encryption=scram-sha-256"
 - name: Allow  connection for the db user
-  community.postgresql.postgresql_pg_hba:
+  postgresql_pg_hba:
     dest: /var/lib/pgsql/16/data/pg_hba.conf
     contype: host
     address: all

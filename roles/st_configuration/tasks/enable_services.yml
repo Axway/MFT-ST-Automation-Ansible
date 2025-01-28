@@ -1,8 +1,8 @@
 - name: Assign the HTTPS certificate
   vars:
-    - parameter_path: /certificateAlias
-    - parameter_value: services
-    - srv_name: Http Default
+    parameter_path: /certificateAlias
+    parameter_value: services
+    srv_name: Http Default
   ansible.builtin.uri:
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
@@ -27,9 +27,9 @@
     - certificates
 - name: Assign the FTPS certificate
   vars:
-    - parameter_path: /certificateAlias
-    - parameter_value: services
-    - srv_name: Ftp Default
+    parameter_path: /certificateAlias
+    parameter_value: services
+    srv_name: Ftp Default
   ansible.builtin.uri:
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
@@ -55,9 +55,9 @@
 
 - name: Assign the AS2 certificate
   vars:
-    - parameter_path: /keyAlias
-    - parameter_value: services
-    - srv_name: As2 Default
+    parameter_path: /keyAlias
+    parameter_value: services
+    srv_name: As2 Default
   ansible.builtin.uri:
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
@@ -82,9 +82,9 @@
 
 - name: Assign the SFTP certificate
   vars:
-    - parameter_path: /certificateAlias
-    - parameter_value: services
-    - srv_name: Ssh Default
+    parameter_path: /certificateAlias
+    parameter_value: services
+    srv_name: Ssh Default
   ansible.builtin.uri:
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
@@ -109,9 +109,9 @@
 
 - name: Assign the PeSIT certificate
   vars:
-    - parameter_path: /pesitKeyAlias
-    - parameter_value: services
-    - srv_name: Pesit Default
+    parameter_path: /pesitKeyAlias
+    parameter_value: services
+    srv_name: Pesit Default
   ansible.builtin.uri:
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
@@ -137,9 +137,9 @@
 # ENABLE THE SERVICES
 - name: Enable the FTP server
   vars:
-    - parameter_path: /isFtpEnabled
-    - parameter_value: true
-    - srv_name: Ftp Default
+    parameter_path: /isFtpEnabled
+    parameter_value: true
+    srv_name: Ftp Default
   ansible.builtin.uri:
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
@@ -162,9 +162,9 @@
 
 - name: Enable FTPS
   vars:
-    - parameter_path: /isFtpsEnabled
-    - parameter_value: true
-    - srv_name: Ftp Default
+    parameter_path: /isFtpsEnabled
+    parameter_value: true
+    srv_name: Ftp Default
   ansible.builtin.uri:
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
@@ -187,9 +187,9 @@
 
 - name: Enable the HTTP server
   vars:
-    - parameter_path: /isHttpsEnabled
-    - parameter_value: true
-    - srv_name: Http Default
+    parameter_path: /isHttpsEnabled
+    parameter_value: true
+    srv_name: Http Default
   ansible.builtin.uri:
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
@@ -212,9 +212,9 @@
 
 - name: Enable AS2
   vars:
-    - parameter_path: /sslListenerEnabled
-    - parameter_value: true
-    - srv_name: As2 Default
+    parameter_path: /sslListenerEnabled
+    parameter_value: true
+    srv_name: As2 Default
   ansible.builtin.uri:
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
@@ -237,9 +237,9 @@
 
 - name: Enable SFTP
   vars:
-    - parameter_path: /isSftpEnabled
-    - parameter_value: true
-    - srv_name: Ssh Default
+    parameter_path: /isSftpEnabled
+    parameter_value: true
+    srv_name: Ssh Default
   ansible.builtin.uri:
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
@@ -262,9 +262,9 @@
 
 - name: Enable PESIT
   vars:
-    - parameter_path: /isPesitSslEnabled
-    - parameter_value: true
-    - srv_name: Pesit Default
+    parameter_path: /isPesitSslEnabled
+    parameter_value: true
+    srv_name: Pesit Default
   ansible.builtin.uri:
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
