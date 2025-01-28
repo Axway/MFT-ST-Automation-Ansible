@@ -1,3 +1,8 @@
+- name: Stop service firewalld, if started
+  # Note: for production environments, you want to add nfs:tcp as an exception instead
+  ansible.builtin.service:
+    name: firewalld
+    state: stopped
 - name: Install nfs-utils
   ansible.builtin.yum:
     name:
