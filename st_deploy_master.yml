@@ -43,7 +43,6 @@
     storage_hostname: "{{ hostvars['nfs_storage']['node_hostname'] }}"
 
 - name: Build the ST nodes
-#  ansible.builtin.import_playbook: st_install.yml
   vars:
     storage_hostname: "{{ hostvars['nfs_storage']['node_hostname'] }}"
     DB_HOSTNAME: "{{ hostvars['postgres_db']['node_hostname'] }}"  # noqa: var-naming[DB_HOSTNAME]
