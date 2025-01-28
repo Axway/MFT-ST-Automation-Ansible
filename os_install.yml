@@ -30,22 +30,6 @@
         - rhel_prep
         - lxml
 
-#    - name: Install additional dependencies for the edges
-#      become: true
-#      ansible.builtin.yum:
-#        name:
-#          - ncurses-compat-libs.x86_64
-#          - ncurses-compat-libs.i686
-#          - perl-Getopt-Long
-#          - perl-Data-Dumper
-#        state: present
-#        update_cache: true
-#      when:
-#        - inventory_hostname in groups["edges"]
-#        - ansible_os_family == 'RedHat'
-#      tags:
-#        - rhel_prep
-
     - name: Create Axway group for non-root install
       become: true
       ansible.builtin.group:
