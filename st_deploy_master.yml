@@ -59,16 +59,15 @@
   roles:
     - st_install
 
-
-#- name: Configure ST Cluster
-#  hosts: ST_NODES
-#  become: true
-#  become_user: "{{ ST_USER }}"
-#  roles:
-#    - st_configuration
-#  vars_files:
-#    - files/external_vars.yml
-#    - files/services_vars.yml
+- name: Configure ST Cluster
+  hosts: ST_NODES
+  become: true
+  become_user: "{{ ST_USER }}"
+  roles:
+    - st_configuration
+  vars_files:
+    - files/external_vars.yml
+    - files/services_vars.yml
 
 #- name: Optimizing the ST nodes
 #  hosts: ST_NODES
