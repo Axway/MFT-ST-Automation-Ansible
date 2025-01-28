@@ -12,7 +12,6 @@
     - files/external_vars.yml
     - files/download_links.yml
   pre_tasks:
-      
     - name: Store the hostname of each node as a variable
       ansible.builtin.set_fact:
         node_hostname: "{{ hostvars[inventory_hostname]['ansible_fqdn'] }}"

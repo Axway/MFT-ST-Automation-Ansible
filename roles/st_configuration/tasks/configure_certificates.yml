@@ -1,0 +1,345 @@
+- name: Generate the internal CA
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates
+    method: POST
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: 201
+    timeout: 60
+    body_format: json
+    body: "{{ ca_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - inventory_hostname == "edge_primary" or inventory_hostname == "core_primary"
+  register: ca
+  tags:
+    - certificates
+  until: ca.status == 201
+  retries: 3
+  delay: 60 # Every minute
+
+
+- name: Persist the CA ID for the exchange later
+  ansible.builtin.set_fact:
+    ca_cert_id: "{{ ca.location | urlsplit('path') | basename }}"
+  tags:
+    - ca_json
+    - certificates
+  when:
+    - inventory_hostname == "edge_primary" or inventory_hostname == "core_primary"
+
+
+- name: Get current certificates
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates?fields=name&usage=local
+    method: GET
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    timeout: 60
+    status_code: 200
+    body_format: json
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - inventory_hostname == "edge_primary" or inventory_hostname == "core_primary"
+  register: current_certs
+  until: current_certs.status == 200
+  retries: 3 # 3 * 60 seconds
+  delay: 60 # Every 60 seconds
+  tags:
+    - certificates2
+
+- name: Get remote_ca certificates
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates?fields=name&type=x509&usage=trusted&name=remote_ca
+    method: GET
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    timeout: 60
+    status_code: 200
+    body_format: json
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - inventory_hostname == "edge_primary" or inventory_hostname == "core_primary"
+  register: current_remote_ca
+  until: current_remote_ca.status == 200
+  retries: 3 # 3 * 60 seconds
+  delay: 60 # Every 60 seconds
+  tags:
+    - certificates
+
+
+- name: Assign cert status
+  ansible.builtin.set_fact:
+    current_cert_list: "{{ current_certs.json.result | map('dict2items') | list | flatten | json_query('[?key==`name`].value') | flatten }}"
+  tags:
+    - certificates
+  when:
+    - inventory_hostname == "edge_primary" or inventory_hostname == "core_primary"
+
+
+- name: Get the Stfs.Encryption.CertAlias value
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/configurations/options/Stfs.Encryption.CertAlias
+    method: GET
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: 200
+    timeout: 60
+    body_format: json
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  when:
+    - inventory_hostname == "core_primary"
+  register: repencrypt_value
+  tags:
+    - certificates
+
+- name: Read repencrypt value
+  ansible.builtin.debug:
+    msg: "{{ repencrypt_value.json['values'] }}"
+  when:
+    - inventory_hostname == "core_primary"
+  tags:
+    - certificates
+
+
+
+- name: Generate core certs that were not present
+  vars:
+    overwrite_status: false
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates
+    method: POST
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [200, 201]
+    timeout: 60
+    body_format: json
+    body: "{{ post_cert_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  register: result
+  loop:
+    '{{ generate_certs_core }}'
+  when:
+    - inventory_hostname == "core_primary"
+    - item.name not in current_cert_list
+  tags:
+    - certificates
+
+
+- name: Re-generate core certs that were  present
+  vars:
+    overwrite_status: true
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates
+    method: POST
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [200, 201]
+    timeout: 60
+    body_format: json
+    body: "{{ post_cert_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  register: result
+  loop:
+    '{{ generate_certs_core }}'
+  when:
+    - inventory_hostname == "core_primary"
+    - item.name in current_cert_list
+    - item.name not in repencrypt_value.json['values']
+  tags:
+    - certificates
+
+- name: Generate edge certs that were not present
+  vars:
+    overwrite_status: false
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates
+    method: POST
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [200, 201]
+    timeout: 60
+    body_format: json
+    body: "{{ post_cert_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  register: result
+  loop:
+    '{{ generate_certs_edge }}'
+  when:
+    - inventory_hostname == "edge_primary"
+    - item.name not in current_cert_list
+  tags:
+    - certificates
+
+
+- name: Re-generate edge certs that were present
+  vars:
+    overwrite_status: true
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates
+    method: POST
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    timeout: 60
+    status_code: [200, 201]
+    body_format: json
+    body: "{{ post_cert_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+  register: result
+  loop:
+    '{{ generate_certs_edge }}'
+  when:
+    - inventory_hostname == "edge_primary"
+    - item.name in current_cert_list
+  tags:
+    - certificates
+
+- name: Get the new CAs
+  become: false
+  ansible.builtin.uri:
+    url: "https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/\
+    certificates/{{ ca_cert_id }}/operations?operation=export&format=pem&includePath=false"
+    method: POST
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [200]
+    timeout: 60
+    dest: files/certs/{{ inventory_hostname }}.pem
+    body_format: form-multipart
+    body:
+      request_payload:
+        content: 'exportPassword='
+    headers:
+      Content-Type: multipart/form-data
+      Accept: application/octet-stream
+      idp_id: ST_IDP
+  when:
+    - inventory_hostname == "core_primary" or inventory_hostname == "edge_primary"
+  tags:
+    - rest_api
+    - certificates2
+  delegate_to: localhost
+
+- name: Import remote_ca from edge to core server
+  vars:
+    overwrite_status: "{{ remote_ca_overwrite }}"
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates
+    method: POST
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [200, 201]
+    timeout: 60
+    body: |
+
+      --BOUNDARY
+      Content-Type: application/json
+
+      {{ lookup('template', 'json_data.json.j2') | to_nice_json }}
+      --BOUNDARY
+      Content-Type: application/octet-stream
+      Content-Disposition: attachment; filename="cert.pem"
+
+      {{ lookup('ansible.builtin.file', 'files/certs/edge_primary.pem') }}
+
+      --BOUNDARY--
+    headers:
+      Content-Type: multipart/mixed; boundary=BOUNDARY
+      Accept: application/json
+      idp_id: ST_IDP
+      Referer: Ansible
+  when:
+    - inventory_hostname == "core_primary"
+  tags:
+    - rest_api
+    - certificates2
+- name: Import remote_ca from core to edge server
+  vars:
+    overwrite_status: "{{ remote_ca_overwrite }}"
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates
+    method: POST
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    force_basic_auth: true
+    return_content: true
+    status_code: [200, 201]
+    timeout: 60
+    body: |
+
+      --BOUNDARY
+      Content-Type: application/json
+
+      {{ lookup('template', 'json_data.json.j2') | to_nice_json }}
+      --BOUNDARY
+      Content-Type: application/octet-stream
+      Content-Disposition: attachment; filename="cert.pem"
+
+      {{ lookup('ansible.builtin.file', 'files/certs/core_primary.pem') }}
+
+      --BOUNDARY--
+    headers:
+      Content-Type: multipart/mixed; boundary=BOUNDARY
+      Accept: application/json
+      idp_id: ST_IDP
+      Referer: Ansible
+  when:
+    - inventory_hostname == "edge_primary"
+  tags:
+    - rest_api
+    - certificates2
