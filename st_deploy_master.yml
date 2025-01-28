@@ -15,26 +15,26 @@
     - name: Store the hostname of each node as a variable
       ansible.builtin.set_fact:
         node_hostname: "{{ hostvars[inventory_hostname]['ansible_fqdn'] }}"
-#    - name: Print the task start
-#      ansible.builtin.debug:
-#        msg: Starting to prepare the shared storage
-#    - name: Install and configure NFS server
-#      ansible.builtin.import_tasks: storage_install_tasks.yml
-#      when: inventory_hostname in groups["storage"]
-#  handlers:
-#    - name: NFS server restart
-#      ansible.builtin.service:
-#        name: nfs-server
-#        state: restarted
-#        enabled: true
+    - name: Print the task start
+      ansible.builtin.debug:
+        msg: Starting to prepare the shared storage
+    - name: Install and configure NFS server
+      ansible.builtin.import_tasks: storage_install_tasks.yml
+      when: inventory_hostname in groups["storage"]
+  handlers:
+    - name: NFS server restart
+      ansible.builtin.service:
+        name: nfs-server
+        state: restarted
+        enabled: true
 
-#- name: Build the Postgres database
-#  hosts: database
-#  become: true
-#  vars_files:
-#    - files/external_vars.yml
-#  roles:
-#    - postgres-config
+- name: Build the Postgres database
+  hosts: database
+  become: true
+  vars_files:
+    - files/external_vars.yml
+  roles:
+    - postgres-config
 
 - name: Prepare the OS
   ansible.builtin.import_playbook: os_install.yml
