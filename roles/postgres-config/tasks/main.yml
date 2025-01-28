@@ -1,12 +1,6 @@
 ---
-#- name: Add PostgreSQL repo
-#  ansible.builtin.yum:
-#    name: https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm
-#    state: present
-#    disable_gpg_check: true
-#  when: inventory_hostname in groups["database"]
 - name: Add PostgreSQL repo
-  ansible.builtin.yum:
+  ansible.builtin.dnf:
     name: https://download.postgresql.org/pub/repos/yum/reporpms/EL-9-x86_64/pgdg-redhat-repo-latest.noarch.rpm
     state: present
     disable_gpg_check: true
@@ -16,37 +10,25 @@
 
 - name: Disable built-in postgres
   become: true
-  shell: |
+  ansible.builtin.shell: |
     dnf -qy module disable postgresql
   when: inventory_hostname in groups["database"]
   tags:
     - pg16
 
-    
 - name: Install PostgreSQL
-  ansible.builtin.yum:
+  ansible.builtin.dnf:
     name:
       - postgresql16
       - postgresql16-server
       - python3-psycopg2
-    
     disablerepo: local-apptream-rpm
     state: present
   tags:
     - pg16
   when:
     - inventory_hostname in groups["database"]
-#- name: Install PostgreSQL
-#  ansible.builtin.yum:
-#    name:
-#      - postgresql14
-#      - postgresql14-server
-#      - python3-psycopg2
-#    disablerepo: local-apptream-rpm
-#    state: present
-#  when:
-#    - inventory_hostname in groups["database"]
-    
+
 - name: Find out if PostgreSQL is initialized
   ansible.builtin.stat:
     path: /var/lib/pgsql/16/data/pg_hba.conf
@@ -121,7 +103,7 @@
     privs: ALL
   become: true
   become_user: postgres
-  
+
 - name: GRANT ALL PRIVILEGES ON SCHEMA public TO ST
   community.postgresql.postgresql_privs:
     db: "{{ DB_NAME }}"
@@ -131,8 +113,7 @@
     role: "{{ DB_USER }}"
   become: true
   become_user: postgres
-  
-  
+
 - name: Create Folders for tablespaces
   ansible.builtin.file:
     path: "{{ item }}"
@@ -153,22 +134,6 @@
   with_items: "{{ postgresql_tablespaces }}"
   become: true
   become_user: postgres
-#- name: Create a new tablespace called st_serverlog
-#  community.postgresql.postgresql_tablespace:
-#    name: st_serverlog
-#    owner: "{{ DB_USER }}"
-#    location: "{{ ST_SERVERLOG }}"
-#    state: present
-#  become: true
-#  become_user: postgres
-#- name: Create a new tablespace called st_filetracking
-#  community.postgresql.postgresql_tablespace:
-#    name: st_filetracking
-#    owner: "{{ DB_USER }}"
-#    location: "{{ ST_FILETRACKING }}"
-#    state: present
-#  become: true
-#  become_user: postgres
 
 - name: We want postgres to listen on the public IP
   become: true
@@ -191,7 +156,6 @@
     grant_option: true
   become: true
   become_user: postgres
-
 
 
 # tasks file for postgres-config

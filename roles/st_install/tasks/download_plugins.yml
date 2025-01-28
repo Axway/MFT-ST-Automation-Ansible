@@ -13,10 +13,4 @@
     - st_install
     - axway_lab_specific
   loop: "{{ plugins | dict2items }}"
-  
-#- name: "loop through list from a variable"
-#  ansible.builtin.debug:
-#
-#
-#    msg: "KEY: {{ item.key }}, VALUE: {{ item.value }}"
-#  loop: "{{ plugins | dict2items }}"
+

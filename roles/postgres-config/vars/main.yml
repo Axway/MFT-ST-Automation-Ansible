@@ -1,12 +1,12 @@
 postgresql_options:
-  - { name: listen_addresses,  value: "*" }
+  - { name: listen_addresses, value: "*" }
   - { name: max_connections, value: "{{ max_connections }}" }
-  - { name: shared_buffers,  value: "{{ (((ansible_memtotal_mb/1024.0)|round|int)*0.25)|int*1024 }}MB" }
-  - { name: max_wal_size,  value: "1GB" }
-  - { name: min_wal_size,  value: "80MB" }
-  - { name: effective_cache_size,  value: "{{ (((ansible_memtotal_mb/1024.0)|round|int)*0.75)|int*1024 }}MB" }
+  - { name: shared_buffers,  value: "{{ (((ansible_memtotal_mb / 1024.0) | round | int) * 0.25) | int * 1024 }}MB" }
+  - { name: max_wal_size, value: "1GB" }
+  - { name: min_wal_size, value: "80MB" }
+  - { name: effective_cache_size, value: "{{ (((ansible_memtotal_mb / 1024.0) | round | int) * 0.75) | int * 1024 }}MB" }
 postgresql_tablespaces:
-  - { name: st_serverlog,  value: "{{ ST_SERVERLOG }}"}
-  - { name: st_filetracking,  value: "{{ ST_FILETRACKING }}" }
-  - { name: st_data,  value: "{{ ST_DATA }}" }
+  - { name: st_serverlog, value: "{{ ST_SERVERLOG }}"}
+  - { name: st_filetracking, value: "{{ ST_FILETRACKING }}" }
+  - { name: st_data, value: "{{ ST_DATA }}" }
 # vars file for postgres-config

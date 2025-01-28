@@ -7,7 +7,7 @@
   pre_tasks:
     - name: Install dependencies
       become: true
-      ansible.builtin.yum:
+      ansible.builtin.dnf:
         name:
           - glibc
           - glibc-langpack-en
@@ -71,7 +71,7 @@
       become: true
       ansible.builtin.file:
         path: "{{ item }}"
-        owner:  "{{ ST_USER }}"
+        owner: "{{ ST_USER }}"
         group: "{{ ST_GROUP }}"
         mode: '0750'
         state: directory
@@ -87,7 +87,7 @@
     - name: Create folder for mountpoint on core
       ansible.builtin.file:
         path: "{{ ST_MOUNTPOINT }}"
-        owner:  "{{ ST_USER }}"
+        owner: "{{ ST_USER }}"
         group: "{{ ST_GROUP }}"
         mode: '0777'
         state: directory

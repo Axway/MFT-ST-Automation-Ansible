@@ -21,7 +21,6 @@
   when: inventory_hostname == "core_primary"
   tags:
     - st_install
-    
 
 # This is to fix the issue introduced with RDST-64642
 
@@ -58,7 +57,7 @@
     executable: /usr/bin/bash
   when:
     - inventory_hostname == "edge_primary"
-    
+
 - name: Start all
   become: true
   become_user: "{{ ST_USER }}"
@@ -80,7 +79,7 @@
     db: "{{ DB_NAME }}"
     login_host: "{{ DB_HOSTNAME }}"
     login_user: "{{ DB_USER }}"
-    login_password: "{{ DB_USER_PASSWORD}}"
+    login_password: "{{ DB_USER_PASSWORD }}"
   tags:
     - db_ch
   register: result

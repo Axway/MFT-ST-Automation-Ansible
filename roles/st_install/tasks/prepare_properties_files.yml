@@ -241,7 +241,7 @@
     - not is_installed.stat.exists
   tags:
     - st_install
-    
+
 - name: Configure Install_SecureTransport_V5.5.properties for ST Edge Primary
   become: true
   become_user: "{{ ST_USER }}"
@@ -258,7 +258,6 @@
   tags:
     - st_install
 
-    
 - name: Configure Install_SecureTransport_V5.5.properties for ST Core Secondary
   become: true
   become_user: "{{ ST_USER }}"
@@ -297,7 +296,7 @@
     - not is_installed.stat.exists
   tags:
     - st_install
-    
+
 - name: Update DB password in Install_SecureTransport_V5.5.properties for ST edge
   become: true
   become_user: "{{ ST_USER }}"
@@ -328,4 +327,3 @@
   when:
     - inventory_hostname in groups["edges"]
     - not is_installed.stat.exists
-

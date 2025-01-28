@@ -284,4 +284,3 @@
   when:
     - (inventory_hostname == "edge_primary" and services_settings.pesitd.edge_on |bool ) or
       (inventory_hostname == "core_primary" and services_settings.pesitd.core_on |bool )
-

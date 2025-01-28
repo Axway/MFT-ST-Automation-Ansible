@@ -125,8 +125,6 @@
   tags:
     - certificates
 
-
-
 - name: Generate core certs that were not present
   vars:
     overwrite_status: false

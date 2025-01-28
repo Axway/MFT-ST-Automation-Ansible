@@ -69,7 +69,7 @@
     - files/external_vars.yml
     - files/services_vars.yml
 
-#- name: Optimizing the ST nodes
+# - name: Optimizing the ST nodes
 #  hosts: ST_NODES
 #  become: true
 #  roles:
