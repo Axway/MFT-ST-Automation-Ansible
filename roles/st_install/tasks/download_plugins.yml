@@ -13,4 +13,3 @@
     - st_install
     - axway_lab_specific
   loop: "{{ plugins | dict2items }}"
-

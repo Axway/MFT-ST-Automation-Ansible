@@ -25,7 +25,7 @@
 # This is to fix the issue introduced with RDST-64642
 
 - name: Revoke access from local user mary on database mydb.
-  postgresql_pg_hba:
+  community.postgresql_pg_hba:
     dest: "{{ FILEDRIVEHOME }}/var/db/postgresql/data/pg_hba.conf"
     contype: host
     source: "{{ edge_secondary_cidr }}"
@@ -37,7 +37,7 @@
 - name: Grant user replication from network edge secondary access for replication
   become: true
   become_user: "{{ ST_USER }}"
-  postgresql_pg_hba:
+  community.postgresql_pg_hba:
     dest: "{{ FILEDRIVEHOME }}/var/db/postgresql/data/pg_hba.conf"
     contype: host
     users: "{{ ST_USER }}"
@@ -57,6 +57,7 @@
     executable: /usr/bin/bash
   when:
     - inventory_hostname == "edge_primary"
+  changed_when: true
 
 - name: Start all
   become: true
@@ -66,6 +67,8 @@
     executable: /usr/bin/bash
   when:
     - inventory_hostname == "edge_primary"
+  changed_when: true
+
 - name: Wait until database is initialized before continuing
   become: true
   become_user: "{{ ST_USER }}"

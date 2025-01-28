@@ -1,4 +1,3 @@
-
 - name: Assign the HTTPS certificate
   vars:
     - parameter_path: /certificateAlias

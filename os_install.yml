@@ -147,6 +147,8 @@
       become: true
       become_user: root
       ansible.builtin.command: "sysctl -p"
+      changed_when: true
+
     - name: reload systemd # noqa: name[casing]
       become: true
       become_user: root

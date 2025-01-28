@@ -19,7 +19,7 @@
 
 - name: Assign memory to the admin service to make configuration easier
   become: true
-  become_user:  "{{ ST_USER }}"
+  become_user: "{{ ST_USER }}"
   ansible.builtin.lineinfile:
     path: "{{ FILEDRIVEHOME }}/conf/STStartScriptsConfig"
     regexp: '^ADMIN_JAVA_MEM_MAX='
@@ -62,6 +62,7 @@
     executable: /usr/bin/bash
   tags:
     - before_exchange
+  changed_when: true
 
 - name: Wait for admin port to become open on the host, don't start checking for 10 seconds
   ansible.builtin.wait_for:
@@ -127,7 +128,9 @@
     - inventory_hostname == "edge_primary" or inventory_hostname == "core_primary"
   tags:
     - rest_api
-- ansible.builtin.include_tasks: configure_certificates.yml
+
+- name: Generate certificates
+  ansible.builtin.include_tasks: configure_certificates.yml
 
 
 - name: Create DMZ for streaming on core
@@ -196,8 +199,8 @@
 
 - name: Configure the Streaming Trusted aliases
   vars:
-    - parameter_path: /values
-    - parameter_value: remote_ca
+    parameter_path: /values
+    parameter_value: remote_ca
   ansible.builtin.uri:
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/configurations/options/Streaming.TrustedAliases
     validate_certs: false
@@ -224,9 +227,9 @@
 # CUSTOMER SPECIFIC - TO REMOVE
 - name: Enable the HTTP server
   vars:
-    - parameter_path: /isHttpEnabled
-    - parameter_value: true
-    - srv_name: Http Default
+    parameter_path: /isHttpEnabled
+    parameter_value: true
+    srv_name: Http Default
   ansible.builtin.uri:
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
@@ -249,7 +252,7 @@
 
 - name: Update customer specific configuration parameters on core
   vars:
-    - parameter_path: /values
+    parameter_path: /values
   ansible.builtin.uri:
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/configurations/options/{{ item.param_name }}
     method: PATCH
