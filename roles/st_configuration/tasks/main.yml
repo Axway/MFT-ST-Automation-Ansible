@@ -94,16 +94,25 @@
     validate_certs: false
     user: admin
     password: admin
-    status_code: [200, 202, 401]
+    status_code: [200, 202, 401, 403]
     force_basic_auth: true
     body_format: json
     headers:
       Content-Type: application/json
       Accept: application/json
-  tags:
-    - ddd
   register: _setup_login_output
-
+  when:
+    - inventory_hostname == "edge_primary" or inventory_hostname == "core_primary"
+  tags:
+    - rest_api
+    
+- name: Print
+  debug:
+    msg: "{{ _setup_login_output }}"
+  when:
+    - inventory_hostname == "edge_primary" or inventory_hostname == "core_primary"
+  tags:
+    - rest_api
 
 - name: Update the admin password from contents of local file
   vars:
@@ -112,9 +121,6 @@
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/myself
     method: PATCH
     validate_certs: false
-    user: admin
-    password: admin
-    force_basic_auth: true
     return_content: true
     status_code: 204
     timeout: 60
@@ -123,26 +129,63 @@
     headers:
       Content-Type: application/json
       Accept: application/json
+      Cookie: "{{ _setup_login_output.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ _setup_login_output.csrftoken }}"
   when:
-    - "'Logged' in _setup_login_output.json.message"
     - inventory_hostname == "edge_primary" or inventory_hostname == "core_primary"
+    - "'Logged' in _setup_login_output.json.message"
   tags:
     - rest_api
 
+- name: Log in with the new credentials and store cookies and token
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/myself
+    method: POST
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    status_code: [200, 201, 202]
+    force_basic_auth: true
+    body_format: json
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+  register: login
+  tags:
+    - rest_api
 - name: Generate certificates
-  ansible.builtin.include_tasks: configure_certificates.yml
+  import_tasks: configure_certificates.yml
 
+- name: Check if the DMZ zone exists
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/zones/DMZ
+    method: HEAD
+    validate_certs: false
+    return_content: false
+    timeout: 60
+    status_code: [200, 404]
+    body_format: json
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
+  when:
+    - inventory_hostname == "core_primary"
+  register: dmz_zone
+  tags:
+    - rest_api
 
 - name: Create DMZ for streaming on core
   ansible.builtin.uri:
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/zones
     method: POST
     validate_certs: false
-    user: admin
-    password: "{{ TMP_ADMIN_PWD }}"
-    force_basic_auth: true
     return_content: true
-    status_code: [201, 400]
+    status_code: [201]
     timeout: 60
     body_format: json
     body: "{{ dmz_core_json }}"
@@ -150,22 +193,23 @@
       Content-Type: application/json
       Accept: application/json
       idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
   when:
     - inventory_hostname == "core_primary"
+    - dmz_zone.status == 404
   tags:
     - rest_api
-    - DMZ2
+    - DMZ
 
 - name: Update edge DMZ
   ansible.builtin.uri:
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/zones/Private
     method: PUT
     validate_certs: false
-    user: admin
-    password: "{{ TMP_ADMIN_PWD }}"
-    force_basic_auth: true
     return_content: true
-    status_code: [204, 400]
+    status_code: [204]
     timeout: 60
     body_format: json
     body: "{{ dmz_edge_json }}"
@@ -173,6 +217,9 @@
       Content-Type: application/json
       Accept: application/json
       idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
   when:
     - inventory_hostname == "edge_primary" or inventory_hostname == "edge_secondary"
   tags:
@@ -189,6 +236,10 @@
     headers:
       Content-Type: application/json
       Accept: application/json
+      idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
     body_format: json
     body: "{{ edge_patch_json }}"
   when:
@@ -205,9 +256,6 @@
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/configurations/options/Streaming.TrustedAliases
     validate_certs: false
     method: PATCH
-    user: admin
-    password: "{{ TMP_ADMIN_PWD }}"
-    force_basic_auth: true
     return_content: false
     status_code: [204]
     timeout: 120
@@ -217,38 +265,18 @@
       Content-Type: application/json
       Accept: application/json
       idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
   when:
     - inventory_hostname == "edge_primary" or inventory_hostname == "core_primary"
   tags:
     - check
-    - REST
+    - rest_api
 
-- include_tasks: enable_services.yml
-# CUSTOMER SPECIFIC - TO REMOVE
-- name: Enable the HTTP server
-  vars:
-    parameter_path: /isHttpEnabled
-    parameter_value: true
-    srv_name: Http Default
-  ansible.builtin.uri:
-    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
-    method: PATCH
-    validate_certs: false
-    user: admin
-    password: "{{ TMP_ADMIN_PWD }}"
-    force_basic_auth: true
-    return_content: true
-    status_code: [204]
-    timeout: 60
-    body_format: json
-    body: "{{ patch_json }}"
-    headers:
-      Content-Type: application/json
-      Accept: application/json
-      idp_id: ST_IDP
-  when:
-    - (inventory_hostname == "edge_primary" and services_settings.httpd.edge_on |bool ) or
-      (inventory_hostname == "core_primary" and services_settings.httpd.core_on |bool )
+- import_tasks: enable_services.yml
+- import_tasks: create_service_files.yml
+
 
 - name: Update customer specific configuration parameters on core
   vars:
@@ -257,9 +285,6 @@
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/configurations/options/{{ item.param_name }}
     method: PATCH
     validate_certs: false
-    user: admin
-    password: "{{ TMP_ADMIN_PWD }}"
-    force_basic_auth: true
     return_content: true
     status_code: [204]
     timeout: 60
@@ -269,6 +294,9 @@
       Content-Type: application/json
       Accept: application/json
       idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
   when:
     - inventory_hostname == "core_primary"
   tags:
@@ -281,9 +309,6 @@
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/configurations/options/UnsafePaths
     method: GET
     validate_certs: false
-    user: admin
-    password: "{{ TMP_ADMIN_PWD }}"
-    force_basic_auth: true
     return_content: true
     timeout: 60
     status_code: [200]
@@ -292,6 +317,9 @@
       Content-Type: application/json
       Accept: application/json
       idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
   when:
     - inventory_hostname == "core_primary"
   tags:
@@ -303,9 +331,6 @@
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/configurations/options/UnsafePaths
     method: PATCH
     validate_certs: false
-    user: admin
-    password: "{{ TMP_ADMIN_PWD }}"
-    force_basic_auth: true
     return_content: true
     status_code: [204]
     timeout: 60
@@ -315,6 +340,9 @@
       Content-Type: application/json
       Accept: application/json
       idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
   when:
     - inventory_hostname == "core_primary"
     - '"/opt/" in result.json["values"]'
@@ -325,9 +353,6 @@
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/userClasses?className=EncryptClass
     method: GET
     validate_certs: false
-    user: admin
-    password: "{{ TMP_ADMIN_PWD }}"
-    force_basic_auth: true
     return_content: true
     status_code: [200]
     timeout: 60
@@ -336,6 +361,9 @@
       Content-Type: application/json
       Accept: application/json
       idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
   when:
     - inventory_hostname == "core_primary"
   tags:
@@ -348,9 +376,6 @@
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/userClasses
     method: POST
     validate_certs: false
-    user: admin
-    password: "{{ TMP_ADMIN_PWD }}"
-    force_basic_auth: true
     return_content: true
     status_code: [201]
     timeout: 60
@@ -360,6 +385,9 @@
       Content-Type: application/json
       Accept: application/json
       idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
   when:
     - inventory_hostname == "core_primary"
     - userClass.json['resultSet']['returnCount'] == 0

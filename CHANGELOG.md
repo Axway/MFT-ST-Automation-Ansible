@@ -14,7 +14,15 @@
 - Removed the 32-bit library requirements and the MariaDB requirements for edges
 - Added a task to stop firewalld before mounting. In production, please add nfs:tcp as a firewall exception instead
 - Changed the jre pattern from jre1 to jre to account for jre2+
-- Change the Edges install parameters to accomodate the modernized SC
-- Validated install with RHEL 9
+- Changed the Edges install parameters to accomodate the modernized SC
+- Validated installation with RHEL 9
 - Changed the DB version to PostgreSQL 16
 - Optimized tablespace creation
+- Moved the download links to a separate file
+
+### Updates from 01/29/25
+- Supressed interpreter warnings by adding interpreter_python=auto_silent
+- Added configuration to create service unit files
+- Added configuration to enable monitord
+- Added configuration to allow using a preinstalled/preconfigured DB
+- Updated the REST API requests to reuse the cookies and CSRF token upon login

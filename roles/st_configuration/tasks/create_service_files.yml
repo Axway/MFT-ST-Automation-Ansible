@@ -1,0 +1,85 @@
+- name: Service Units | Create unit files on cores
+  become: true
+  become_user: root
+  ansible.builtin.template:
+    src: st.service.j2
+    dest: "/etc/systemd/system/securetransport_{{ item.value.svc_name }}.service"
+    mode: '0644'
+  loop:
+     "{{ services_settings | dict2items }}"
+  when:
+    - inventory_hostname in groups["cores"] and item.value.core_on
+  register: core_services
+  tags:
+    - service_files
+
+- name: Service Units | Create unit files on edges
+  become: true
+  become_user: root
+  vars:
+    db_svc: securetransport_db.service
+  ansible.builtin.template:
+    src: st.service.j2
+    dest: "/etc/systemd/system/securetransport_{{ item.value.svc_name }}.service"
+    mode: '0644'
+  loop:
+    "{{ services_settings | dict2items }}"
+  when:
+    - inventory_hostname in groups["edges"] and item.value.edge_on
+  register: edge_services
+  tags:
+    - service_files
+
+- name: Push the Target unit sample file
+  become: true
+  become_user: root
+  ansible.builtin.template:
+    src: target.service.j2
+    dest: /etc/systemd/system/securetransport.target
+    mode: '0644'
+  tags:
+    - service_files
+
+#ToDo: this often fails with "Could not find the requested service securetransport.target: host", disabling for now.
+- name: Enable services' unit files on cores
+  become: true
+  become_user: root
+  ansible.builtin.systemd_service:
+    enabled: true
+    name: "{{ item | basename }}"
+    daemon_reload: true
+  loop:  "{{ core_services.results | selectattr('dest', 'defined')  | map(attribute='dest') }}"
+  tags:
+    - service_files
+  when:
+    - inventory_hostname in groups["cores"]
+- name: Enable services' unit files on edges
+  become: true
+  become_user: root
+  ansible.builtin.systemd_service:
+    enabled: true
+    name: "{{ item | basename }}"
+    daemon_reload: true
+  loop:  "{{ edge_services.results | selectattr('dest', 'defined')  | map(attribute='dest') }}"
+  tags:
+    - service_files
+  when:
+    - inventory_hostname in groups["edges"]
+
+- name: Enable the target unit file
+  become: true
+  become_user: root
+  ansible.builtin.systemd_service:
+    enabled: true
+    name: securetransport.target
+    daemon_reload: true
+  tags:
+    - service_files
+
+- name: Unconditionally reboot the machine with all defaults
+  become: true
+  become_user: root
+  ansible.builtin.reboot:
+  tags:
+    - service_files
+    - reboot

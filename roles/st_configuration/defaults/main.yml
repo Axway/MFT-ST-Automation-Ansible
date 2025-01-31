@@ -25,8 +25,6 @@ post_cert_json: "{{ lookup('template', 'certificate_generation_template.json.j2'
 
 # EDIT AS NEEDED
 customer_specific_config_core:
-  - param_name: Users.SslEncryption  # Need to allow unencrypted connections to core to be able to use plain HTTP
-    parameter_value: "optional *"
   - param_name: Admin.Security.SameSite  # Need to change the policy to stop SSO page loop
     parameter_value: "Lax"
   - param_name: Stfs.Encryption.CertAlias # Need this to assign the certificate for encryption at rest

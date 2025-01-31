@@ -21,7 +21,7 @@ services_settings:
     name: FTP service
     pid_file: ftpd.pid
     svc_name: ftpd
-    edge_on: false
+    edge_on: true
     core_on: false
     mem_max: 1024M
     mem_min: 256M
@@ -77,3 +77,9 @@ services_settings:
     svc_name: db
     edge_on: true
     core_on: false
+  monitor:
+    name: MONITOR service
+    pid_file: monitord.pid
+    svc_name: monitord
+    edge_on: true
+    core_on: true

@@ -7,9 +7,6 @@
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
     validate_certs: false
-    user: admin
-    password: "{{ TMP_ADMIN_PWD }}"
-    force_basic_auth: true
     return_content: true
     status_code: [204]
     timeout: 120
@@ -19,11 +16,14 @@
       Content-Type: application/json
       Accept: application/json
       idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
   when:
     - (inventory_hostname == "edge_primary" and services_settings.httpd.edge_on |bool ) or
        (inventory_hostname == "core_primary" and services_settings.httpd.core_on |bool )
   tags:
-    - check
+    - rest_api
     - certificates
 - name: Assign the FTPS certificate
   vars:
@@ -34,9 +34,6 @@
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
     validate_certs: false
-    user: admin
-    password: "{{ TMP_ADMIN_PWD }}"
-    force_basic_auth: true
     return_content: true
     status_code: [204]
     timeout: 60
@@ -46,11 +43,15 @@
       Content-Type: application/json
       Accept: application/json
       idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
   when:
     - (inventory_hostname == "edge_primary" and services_settings.ftpd.edge_on |bool ) or
       (inventory_hostname == "core_primary" and services_settings.ftpd.core_on |bool )
   tags:
     - certificates
+    - rest_api
 
 
 - name: Assign the AS2 certificate
@@ -62,9 +63,6 @@
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
     validate_certs: false
-    user: admin
-    password: "{{ TMP_ADMIN_PWD }}"
-    force_basic_auth: true
     return_content: true
     status_code: [204]
     timeout: 60
@@ -74,11 +72,15 @@
       Content-Type: application/json
       Accept: application/json
       idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
   when:
     - (inventory_hostname == "edge_primary" and services_settings.as2d.edge_on |bool ) or
        (inventory_hostname == "core_primary" and services_settings.as2d.core_on |bool )
   tags:
     - certificates
+    - rest_api
 
 - name: Assign the SFTP certificate
   vars:
@@ -89,9 +91,6 @@
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
     validate_certs: false
-    user: admin
-    password: "{{ TMP_ADMIN_PWD }}"
-    force_basic_auth: true
     return_content: true
     status_code: [204]
     timeout: 60
@@ -101,11 +100,15 @@
       Content-Type: application/json
       Accept: application/json
       idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
   when:
     - (inventory_hostname == "edge_primary" and services_settings.sshd.edge_on |bool ) or
       (inventory_hostname == "core_primary" and services_settings.sshd.core_on |bool )
   tags:
     - certificates
+    - rest_api
 
 - name: Assign the PeSIT certificate
   vars:
@@ -116,9 +119,6 @@
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
     validate_certs: false
-    user: admin
-    password: "{{ TMP_ADMIN_PWD }}"
-    force_basic_auth: true
     return_content: true
     status_code: [204]
     timeout: 60
@@ -128,11 +128,15 @@
       Content-Type: application/json
       Accept: application/json
       idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
   when:
     - (inventory_hostname == "edge_primary" and services_settings.pesitd.edge_on |bool ) or
       (inventory_hostname == "core_primary" and services_settings.pesitd.core_on |bool )
   tags:
     - certificates
+    - rest_api
 
 # ENABLE THE SERVICES
 - name: Enable the FTP server
@@ -144,9 +148,6 @@
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
     validate_certs: false
-    user: admin
-    password: "{{ TMP_ADMIN_PWD }}"
-    force_basic_auth: true
     return_content: true
     status_code: [204]
     timeout: 60
@@ -156,9 +157,14 @@
       Content-Type: application/json
       Accept: application/json
       idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
   when:
     - (inventory_hostname == "edge_primary" and services_settings.ftpd.edge_on |bool ) or
       (inventory_hostname == "core_primary" and services_settings.ftpd.core_on |bool )
+  tags:
+    - rest_api
 
 - name: Enable FTPS
   vars:
@@ -169,9 +175,6 @@
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
     validate_certs: false
-    user: admin
-    password: "{{ TMP_ADMIN_PWD }}"
-    force_basic_auth: true
     return_content: true
     status_code: [204]
     body_format: json
@@ -181,9 +184,14 @@
       Content-Type: application/json
       Accept: application/json
       idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
   when:
     - (inventory_hostname == "edge_primary" and services_settings.ftpd.edge_on |bool ) or
       (inventory_hostname == "core_primary" and services_settings.ftpd.core_on |bool )
+  tags:
+    -rest_api
 
 - name: Enable the HTTP server
   vars:
@@ -194,9 +202,6 @@
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
     validate_certs: false
-    user: admin
-    password: "{{ TMP_ADMIN_PWD }}"
-    force_basic_auth: true
     return_content: true
     status_code: [204]
     timeout: 60
@@ -206,9 +211,14 @@
       Content-Type: application/json
       Accept: application/json
       idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
   when:
     - (inventory_hostname == "edge_primary" and services_settings.httpd.edge_on |bool ) or
       (inventory_hostname == "core_primary" and services_settings.httpd.core_on |bool )
+  tags:
+    - rest_api
 
 - name: Enable AS2
   vars:
@@ -219,9 +229,6 @@
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
     validate_certs: false
-    user: admin
-    password: "{{ TMP_ADMIN_PWD }}"
-    force_basic_auth: true
     return_content: true
     status_code: [204]
     timeout: 60
@@ -231,9 +238,14 @@
       Content-Type: application/json
       Accept: application/json
       idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
   when:
     - (inventory_hostname == "edge_primary" and services_settings.as2d.edge_on |bool ) or
       (inventory_hostname == "core_primary" and services_settings.as2d.core_on |bool )
+  tags:
+    - rest_api
 
 - name: Enable SFTP
   vars:
@@ -244,9 +256,6 @@
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
     validate_certs: false
-    user: admin
-    password: "{{ TMP_ADMIN_PWD }}"
-    force_basic_auth: true
     return_content: true
     status_code: [204]
     timeout: 60
@@ -256,9 +265,14 @@
       Content-Type: application/json
       Accept: application/json
       idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
   when:
     - (inventory_hostname == "edge_primary" and services_settings.sshd.edge_on |bool ) or
       (inventory_hostname == "core_primary" and services_settings.sshd.core_on |bool )
+  tags:
+    - rest_api
 
 - name: Enable PESIT
   vars:
@@ -269,9 +283,6 @@
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/servers/{{ srv_name | urlencode() }}
     method: PATCH
     validate_certs: false
-    user: admin
-    password: "{{ TMP_ADMIN_PWD }}"
-    force_basic_auth: true
     return_content: true
     status_code: [204]
     timeout: 60
@@ -280,6 +291,12 @@
     headers:
       Content-Type: application/json
       Accept: application/json
+      idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
   when:
     - (inventory_hostname == "edge_primary" and services_settings.pesitd.edge_on |bool ) or
       (inventory_hostname == "core_primary" and services_settings.pesitd.core_on |bool )
+  tags:
+    - rest_api

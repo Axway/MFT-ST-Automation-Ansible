@@ -16,4 +16,5 @@
 - include_tasks: prepare_properties_files.yml
 - include_tasks: silent_install_nodes.yml
 - include_tasks: download_plugins.yml
+
 # tasks file for st_install

@@ -1,0 +1,53 @@
+[Unit]
+
+Description=SecureTransport {{ item.value.name }} unit
+
+# If this is an Enterprise Cluster core server, or the
+# securetransport_db service file, remove the lines Requires= and After=
+
+{% if (inventory_hostname in groups['edges']) and (item.value.svc_name != 'db') %}
+Requires={{ db_svc | default ([]) }}
+After={{ db_svc | default ([]) }}
+# change goes here - for ansible
+{% endif %}
+
+
+
+
+[Service]
+# Replace the non-root user with the user specified in the non-root ST installation
+# Replace <FILEDRIVEHOME> with the absolute path to the ST directory
+# Replace PIDFile with the corresponding PID file of the service,
+# e.g., tomcat.pid
+# Replace <service_start_script> with the ST start script for the
+# service being defined, e.g., start_admin
+# Replace <service_stop_script> with the ST stop script for the
+# service being defined, e.g., stop_admin
+# If a service startup takes longer than the default timeout of
+# 90 seconds, increase the startup timeout by adding the
+# TimeoutStartSec={time}option in the service file.
+# Consider adding SuccessExitStatus=SIGKILL to the securetransport_tm.service file to signify successful
+# termination of the TM service.
+# Added 0421
+
+
+
+TimeoutStartSec=300
+Type=forking
+User={{ ST_USER }}
+PIDFile={{ FILEDRIVEHOME }}/var/run/{{ item.value.pid_file }}
+ExecStart={{ FILEDRIVEHOME }}/bin/start_{{ item.value.svc_name }}
+{% if item.value.svc_name == 'db' %}
+ExecStop={{ FILEDRIVEHOME }}/bin/stop_{{ item.value.svc_name }} -f
+{% else %}
+ExecStop={{ FILEDRIVEHOME }}/bin/stop_{{ item.value.svc_name }}
+{% endif %}
+LimitNOFILE=65536
+LimitNPROC=65536
+LimitMEMLOCK=4194394
+TasksMax=65536
+
+
+[Install]
+
+WantedBy=securetransport.target

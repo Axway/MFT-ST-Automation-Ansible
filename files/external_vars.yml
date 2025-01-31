@@ -4,11 +4,6 @@
 AXWAY_HOME: /opt/axway
 JRE_VERSION: jre11_u11.0.21_9_64
 
-st_install_file: "SecureTransport_5.5-20241219_Install_linux-x86-64_BN3217.zip"
-
-
-
-ST_VERSION: "{{ st_install_file.split('_')[ 1 ] }}"
 
 # This is a sandbox directory to hold the files we need to install, like the installer, JRE, taeh...
 INSTALLER_DIR: "{{ AXWAY_HOME }}/installer"
@@ -31,16 +26,26 @@ SSL_ADMIN_PORT: 8444
 
 #### DB INSTALL PARAMS
 
+# Skip the PostgreSQL install & configuration - set to true if you have a preinstalled & preconfigured database
+# The external database requirements MUST be met if you are using a preinstalled database.
+# See documentation here:
+# https://docs.axway.com/bundle/SecureTransport_55_InstallationGuide_allOS_en_HTML5/page/Content/InstallationGuide/
+skip_pgsql_install: False
+
+
+
 # DB_USER is the database username
 DB_USER: stuser
 # DB_USER_PASSWORD is the database password in plaintext. Use -c to encrypt it. Use -u to update it.
 DB_USER_PASSWORD: "Axway123!"
 # DB_NAME is the database name
 DB_NAME: ST_DB
-DB_HOST: "{{ hostvars['postgres_db']['node_hostname'] }}"
 DB_PORT: 5432
+# If skip_pgsql_install is set to True, replace the variable below with the preinstalled DB hostname
+DB_HOST: "{{ hostvars['postgres_db']['node_hostname'] }}"
 
-# THESE CAN REMAIN UNCHANGED
+
+# TABLESPACE LOCATIONS FOR THE ST DATABASE - ONLY USED WITH skip_pgsql_install: False
 ST_DATA: /var/lib/pgsql/16/data/pg_tblspc/st_data
 ST_FILETRACKING: /var/lib/pgsql/16/data/pg_tblspc/st_filetracking
 ST_SERVERLOG: /var/lib/pgsql/16/data/pg_tblspc/st_serverlog

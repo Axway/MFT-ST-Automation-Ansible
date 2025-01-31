@@ -80,7 +80,7 @@
 - name: PostgreSQL ping dbsrv server
   community.postgresql.postgresql_ping:
     db: "{{ DB_NAME }}"
-    login_host: "{{ DB_HOSTNAME }}"
+    login_host: "{{ DB_HOST }}"
     login_user: "{{ DB_USER }}"
     login_password: "{{ DB_USER_PASSWORD }}"
   tags:

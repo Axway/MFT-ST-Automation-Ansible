@@ -28,7 +28,7 @@
         ansible_os_family == 'RedHat'
       tags:
         - rhel_prep
-        - lxml
+
 
     - name: Create Axway group for non-root install
       become: true
@@ -85,6 +85,7 @@
       ansible.builtin.service:
         name: firewalld
         state: stopped
+        enabled: False
 
     - name: Mount an NFS volume for shared folders
       ansible.posix.mount:
