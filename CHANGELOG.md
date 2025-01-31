@@ -26,3 +26,4 @@
 - Added configuration to enable monitord
 - Added configuration to allow using a preinstalled/preconfigured DB
 - Updated the REST API requests to reuse the cookies and CSRF token upon login
+- Created tasks to deploy service unit files
