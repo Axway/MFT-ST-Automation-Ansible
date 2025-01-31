@@ -3,7 +3,7 @@
   become: true
   become_user: "{{ ST_USER }}"
   vars:
-    - env_type: core
+    env_type: core
   ansible.builtin.template:
     src: STStartScriptsConfig.j2
     dest: "{{ FILEDRIVEHOME }}/conf/STStartScriptsConfig"
@@ -14,26 +14,13 @@
   become: true
   become_user: "{{ ST_USER }}"
   vars:
-    - env_type: edge
+    env_type: edge
   ansible.builtin.template:
     src: STStartScriptsConfig.j2
     dest: "{{ FILEDRIVEHOME }}/conf/STStartScriptsConfig"
     owner: "{{ ST_USER }}"
     mode: '0750'
   when: inventory_hostname in groups["edges"]
-
-    
-#- name: Install lxml
-#  become: true
-#  become_user: root
-#  ansible.builtin.pip:
-#    name: https://files.pythonhosted.org/packages/8f/14/c4e92fe3ae3261e3e5fba60d5be0f6f463d4b30e5ccfeaf1aa07262b4bf6/lxml-5.1.0-cp36-cp36m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
-#    state: latest
-#    virtualenv: "{{ INSTALLER_DIR }}/venv"
-#    virtualenv_site_packages: true
-#    virtualenv_command: /usr/bin/python3 -m venv
-#  tags:
-#    - lxml
 
 - name: Update c3p0.max_size
   community.general.xml:
@@ -54,16 +41,7 @@
   loop:
     "{{ components }}"
 
-#- name: Optimize the embedded DB on the edges
-#  ansible.builtin.lineinfile:
-#    path: "{{ FILEDRIVEHOME }}/conf/internaldb.conf"
-#    regexp: '^(.*){{ item.key }}(.*)$'
-#    line: '{{ item.key }}={{ item.value }}'
-#    backrefs: true
-#    backup: true
-#  loop:
-#    "{{ lookup('dict', maria_db_tuning) }}"
-#  when: inventory_hostname in groups["edges"]
+
 - name: Optimize the scheduler on cores
   ansible.builtin.lineinfile:
     path: "{{ FILEDRIVEHOME }}/conf/scheduler.properties"
@@ -166,7 +144,7 @@
 
 - name: Update server configuration parameters for EC
   vars:
-    - parameter_path: /values
+    parameter_path: /values
   ansible.builtin.uri:
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/configurations/options/{{ item.param_name }}
     method: PATCH
@@ -196,7 +174,7 @@
 
 - name: Update server configuration parameters for edges
   vars:
-    - parameter_path: /values
+    parameter_path: /values
   ansible.builtin.uri:
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:8444/api/v2.0/configurations/options/{{ item.param_name }}
     method: PATCH
@@ -220,6 +198,5 @@
   loop:
     "{{ server_config_edge }}"
   notify:
-    - Sync
     - stop_all
     - start_all

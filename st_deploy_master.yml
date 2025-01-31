@@ -69,14 +69,14 @@
     - files/external_vars.yml
     - files/services_vars.yml
 
-## - name: Optimizing the ST nodes
-##  hosts: ST_NODES
-##  become: true
-##  roles:
-##    - st_optimization
-##  vars_files:
-##    - files/external_vars.yml
-##    - files/services_vars.yml
+- name: Optimizing the ST nodes
+  hosts: ST_NODES
+  become: true
+  roles:
+    - st_optimization
+  vars_files:
+    - files/external_vars.yml
+    - files/services_vars.yml
 
 - name: Sanity restart of all services
   become: true
