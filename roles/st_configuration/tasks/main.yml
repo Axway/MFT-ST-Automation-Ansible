@@ -412,3 +412,5 @@
   changed_when: true
   tags:
     - restart
+    - reboot
+    - service_files

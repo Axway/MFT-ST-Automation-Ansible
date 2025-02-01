@@ -49,6 +49,14 @@
     path: "{{ FILEDRIVEHOME }}/var/run/as2d.pid"
     state: absent
 
+
+- name: Reboot
+  become: true
+  become_user: root
+  ansible.builtin.reboot:
+  tags:
+    - service_files
+    - reboot
 - name: Start all
   become: true
   become_user: "{{ ST_USER }}"
@@ -62,13 +70,6 @@
   ansible.builtin.wait_for:
     host: 0.0.0.0
     port: 8444
-    delay: 10
-
-- name: Reboot
-  become: true
-  become_user: root
-  ansible.builtin.reboot:
-  tags:
-    - service_files
-    - reboot
+    delay: 100
+    timeout: 600
 # handlers file for st_configuration

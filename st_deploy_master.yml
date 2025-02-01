@@ -78,24 +78,24 @@
     - files/external_vars.yml
     - files/services_vars.yml
 
-- name: Sanity restart of all services
-  become: true
-  become_user: "{{ ST_USER }}"
-  hosts: ST_NODES
-  vars_files:
-    - files/external_vars.yml
-  tasks:
-    - name: Stop all
-      ansible.builtin.shell:
-        cmd: "sh {{ FILEDRIVEHOME }}/bin/stop_all -f"
-        executable: /usr/bin/bash
-      changed_when: true
-
-    - name: Start all
-      ansible.builtin.shell:
-        cmd: "sh {{ FILEDRIVEHOME }}/bin/start_all"
-        executable: /usr/bin/bash
-      changed_when: true
+#- name: Sanity restart of all services
+#  become: true
+#  become_user: "{{ ST_USER }}"
+#  hosts: ST_NODES
+#  vars_files:
+#    - files/external_vars.yml
+#  tasks:
+#    - name: Stop all
+#      ansible.builtin.shell:
+#        cmd: "sh {{ FILEDRIVEHOME }}/bin/stop_all -f"
+#        executable: /usr/bin/bash
+#      changed_when: true
+#
+#    - name: Start all
+#      ansible.builtin.shell:
+#        cmd: "sh {{ FILEDRIVEHOME }}/bin/start_all"
+#        executable: /usr/bin/bash
+#      changed_when: true
 
 - name: Cleanup local files
   hosts: 127.0.0.1
