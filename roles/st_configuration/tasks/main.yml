@@ -395,8 +395,6 @@
     - rest_api
 
 
-
-
 - name: Restart everything
   ansible.builtin.debug:
     msg: "All services going down for a restart on {{ inventory_hostname }}"
@@ -409,7 +407,7 @@
     - SSHD pid destroyed
     - AS2 pid destroyed
     - FTPD pid destroyed
-    - Start all
+    - Reboot
     - Wait for start
   changed_when: true
   tags:
