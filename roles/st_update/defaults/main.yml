@@ -1,9 +1,9 @@
----
-ST_DOWNLOAD_LINK: "https://artifactory-sofi.ecd.axway.int/artifactory/securetransport-generic-release-sofi/\
-										release-by-number/Updates/Update35/SecureTransport_5.5-20230525_Update_allOS_BN3195.zip"
-FILEDRIVEHOME: /opt/axway/SecureTransport
-BACKUP_LOCATION: /infra/backups/UG
-AXWAY_HOME: /opt/axway
-INSTALLER_DIR: /opt/installer
+#---
+#ST_DOWNLOAD_LINK: "https://artifactory-sofi.ecd.axway.int/artifactory/securetransport-generic-release-sofi/\
+#										release-by-number/Updates/Update35/SecureTransport_5.5-20230525_Update_allOS_BN3195.zip"
+#FILEDRIVEHOME: /opt/axway/SecureTransport
+#BACKUP_LOCATION: /infra/backups/UG
+#AXWAY_HOME: /opt/axway
+#INSTALLER_DIR: /opt/installer
 
 # defaults file for st_update
