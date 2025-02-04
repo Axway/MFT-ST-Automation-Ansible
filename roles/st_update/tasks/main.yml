@@ -17,15 +17,15 @@
     mode: '0755'
     state: directory
 
-- name: Download and extract the ST Update
-  ansible.builtin.unarchive:
-    src: "{{ ST_UPDATE_LINK }}"
-    dest: "{{ INSTALLER_DIR }}/update"
-    mode: '0755'
-    owner: "{{ ST_USER }}"
-    group: "{{ ST_GROUP }}"
-    validate_certs: false
-    remote_src: true
+#- name: Download and extract the ST Update
+#  ansible.builtin.unarchive:
+#    src: "{{ ST_UPDATE_LINK }}"
+#    dest: "{{ INSTALLER_DIR }}/update"
+#    mode: '0755'
+#    owner: "{{ ST_USER }}"
+#    group: "{{ ST_GROUP }}"
+#    validate_certs: false
+#    remote_src: true
     
 - name: Find ST services
   find:
@@ -75,25 +75,37 @@
 - name: Find the name of UpdateStep1
   ansible.builtin.find:
     paths: "{{ INSTALLER_DIR }}/update/UpdateStep1/"
-    patterns: '.jar'
+    patterns: '*.jar'
   register: step_1
   
+- name: Find the name of UpdateStep2
+  ansible.builtin.find:
+    paths: "{{ INSTALLER_DIR }}/update/UpdateStep2/"
+    patterns: 'SecureTransport-Update-5.5*allOS.jar'
+  register: step_2
+
 - name: print
   debug:
-    msg: "{{ step_1 }}"
+    msg: "{{ step_2 }}"
 
-#- name: Execute the script to apply Step 1
-#  command: "sh {{ AXWAY_HOME }}/update.sh -f {{ INSTALLER_DIR }}/UpdateStep1/"
-  
-#- name: Execute the script to apply Step 2
-#  command: "sh {{ AXWAY_HOME }}/update.sh -f {{ INSTALLER_DIR }}/UpdateStep2/"
-  # "sh {{ FILEDRIVEHOME }}update.sh -f {{ step_1['files'][0]['path'] }}"
-#
-#- name: Find the name of UpdateStep1
-#  ansible.builtin.find:
-#    paths: "{{ INSTALLER_DIR }}/UpdateStep2/"
-#    patterns: 'SecureTransport-Update-5.5*allOS.jar'
-#  register: step_2
+- name: Execute the script to apply Step 1
+  command: "sh {{ AXWAY_HOME }}/Axway/update.sh -f {{ INSTALLER_DIR }}/update/UpdateStep1/"
+  register: update_axway_installer
+  ignore_errors: true
+
+
+- name: Execute the script to apply Step 2
+  command: "sh {{ AXWAY_HOME }}/Axway/update.sh -f {{ INSTALLER_DIR }}/update/UpdateStep2/"
+  register: update_st_product
+
+
+- name: Start ST services, if stopped
+  become_user: root
+  ansible.builtin.systemd_service:
+    name: "{{ item.path | basename }}"
+    state: started
+  loop: "{{ st_services.files }}"
+
 
 #- name: Execute the script
 #  command: "sh {{ step_2['files'][0]['path'] }}"

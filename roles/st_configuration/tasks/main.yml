@@ -105,14 +105,7 @@
     - inventory_hostname == "edge_primary" or inventory_hostname == "core_primary"
   tags:
     - rest_api
-    
-- name: Print
-  debug:
-    msg: "{{ _setup_login_output }}"
-  when:
-    - inventory_hostname == "edge_primary" or inventory_hostname == "core_primary"
-  tags:
-    - rest_api
+
 
 - name: Update the admin password from contents of local file
   vars:
