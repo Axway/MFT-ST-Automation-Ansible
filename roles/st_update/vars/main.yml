@@ -1,2 +1,3 @@
 ---
+backup_filename: "backup-{{ inventory_hostname }}={{ current_st_version }}-{{ ansible_date_time.date }}.tar.gz"
 # vars file for st_update

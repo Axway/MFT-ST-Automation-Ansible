@@ -14,9 +14,12 @@
 
 - name: Get the version diff
   ansible.builtin.set_fact:
-    diff_st_version: "{{ ((update_version | to_datetime('%Y%m%d')) - (current_st_version | to_datetime('%Y%m%d'))).days }}"
+    diff_st_version: "{{ ((update_version | to_datetime('%Y%m%d')) - (current_st_version | \
+    to_datetime('%Y%m%d'))).days }}"
 
-
+- name: debug
+  debug:
+    msg: "{{ diff_st_version }}"
 - name: Alert if the host is on the same or newer version
   ansible.builtin.debug:
     msg: |
@@ -85,7 +88,7 @@
     paths: /etc/systemd/system
     patterns: "securetransport_*.service"
   register: st_services
-  changed_when: true
+  changed_when: st_services.rc == 0
 
 - name: Stop ST services, if started
   become: true
@@ -132,7 +135,7 @@
     exclude_path:
       - "{{ st_backup_location }}"
       - "{{ INSTALLER_DIR }}"
-    dest: "{{ st_backup_location }}/backup-{{ current_st_version }}-{{ ansible_date_time.date }}.tar.gz"
+    dest: "{{ st_backup_location }}/{{ backup_filename }}"
     mode: '0755'
     format: gz
     force_archive: true

@@ -1,0 +1,9 @@
+- name: Update the ST deployment
+  hosts: ST_NODES
+  become: true
+  become_user: "{{ ST_USER }}"
+  roles:
+    - st_update
+  vars_files:
+    - files/external_vars.yml
+    - files/download_links.yml
