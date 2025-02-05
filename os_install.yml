@@ -20,7 +20,6 @@
           - nfs4-acl-tools
           - python3-lxml
           - python3-psycopg2
-
         state: present
         update_cache: true
       # this is not needed atm, but I will eventually create playbooks to work for all OS-es so this is just a prep - HS
@@ -76,6 +75,7 @@
         - "{{ INSTALLER_DIR }}"
         - "{{ INSTALLER_DIR }}/JRE"
         - "{{ INSTALLER_DIR }}/ServiceUnitFiles"
+        - "{{ AXWAY_HOME }}"
       when:
         - ansible_os_family == 'RedHat'
       tags:

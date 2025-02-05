@@ -57,3 +57,6 @@ options: "*(rw,sync,no_root_squash,no_wdelay)"
 permission: '0775'
 
 
+#### ST UPDATE PARAMS
+
+st_backup_location: "{{ AXWAY_HOME }}/backup/"

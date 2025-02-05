@@ -1,0 +1,5 @@
+{%- if (current_st_version_output.stdout).split(' ')[-1] is regex('^V5.*') -%}
+  {{ ((current_st_version_output.stdout).split(' ')[-1]).split('-')[1] }}
+{%- else -%}
+  {{ ((current_st_version_output.stdout).split(' ')[-1]).replace('SP0_Update','')}}
+{%- endif -%}

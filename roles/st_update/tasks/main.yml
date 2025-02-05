@@ -1,40 +1,85 @@
----
-#- name: Download the ST update
-#  become: true
-#  ansible.builtin.get_url:
-#    url: "{{ ST_DOWNLOAD_LINK }}"
-#    dest: "/opt/"
-#    mode: '0755'
-#    group: root
-#    owner: root
-#    validate_certs: false
-- name: Create New Folders
+#---
+- name: Get the current ST version
   become: true
+  become_user: "{{ ST_USER }}"
+  command: "sh {{ AXWAY_HOME }}/Axway/display.sh -n SecureTransport"
+  register: current_st_version_output
+  
+- name: Set vars with the ST versions and the diff
+  set_fact:
+    current_st_version: "{{ lookup('template', 'current_version.j2')}}"
+    update_version: "{{ ((st_update_file | basename).split('_')[1]).split('-')[1] }}"
+    diff_st_version: "{{ ((update_version|to_datetime('%Y%m%d')) - (current_st_version| to_datetime('%Y%m%d'))).days }}"
+
+    
+- name: Alert if the host is on the same or newer version
+  debug:
+    msg: |
+      'Current ST version ({{ current_st_version }}) is the same or newer than the update you are trying to install.
+      Ending the script'.
+  when: (diff_st_version | int) <= 0
+    
+- name: End the playbook if the host is on the same or newer version
+  meta: end_host
+  when: (diff_st_version | int) <= 0
+
+- name: Get the current Axway Installer version
+  become: true
+  become_user: "{{ ST_USER }}"
+  command: "sh {{ AXWAY_HOME }}/Axway/display.sh -n Axway_Installer"
+  register: current_installer_version_output
+
+- name: Get the current Axway Installer version
+  set_fact:
+    current_installer_version: '{{ ((current_installer_version_output.stdout).split(" ")[1]).replace("V","") | trim }}'
+  
+- name: Create a folder for the update
+  become: true
+  become_user: "{{ ST_USER }}"
   ansible.builtin.file:
     path: "{{ INSTALLER_DIR }}/update"
     owner: "{{ ST_USER }}"
     group: "{{ ST_GROUP }}"
     mode: '0755'
     state: directory
-
-#- name: Download and extract the ST Update
-#  ansible.builtin.unarchive:
-#    src: "{{ ST_UPDATE_LINK }}"
-#    dest: "{{ INSTALLER_DIR }}/update"
-#    mode: '0755'
-#    owner: "{{ ST_USER }}"
-#    group: "{{ ST_GROUP }}"
-#    validate_certs: false
-#    remote_src: true
     
+- name: Download and extract the ST Update
+  become: true
+  become_user: "{{ ST_USER }}"
+  ansible.builtin.unarchive:
+    src: "{{ ST_UPDATE_LINK }}"
+    dest: "{{ INSTALLER_DIR }}/update"
+    mode: '0755'
+    owner: "{{ ST_USER }}"
+    group: "{{ ST_GROUP }}"
+    validate_certs: false
+    remote_src: true
+
+    
+- name: Find the name of UpdateStep1
+  become: true
+  become_user: "{{ ST_USER }}"
+  ansible.builtin.find:
+    paths: "{{ INSTALLER_DIR }}/update/UpdateStep1/"
+    patterns: '*.jar'
+  register: step_1
+  
+- name: Filter the Axway Installer version and set a variable
+  ansible.builtin.set_fact:
+    update_installer_version: "{{ (step_1.files.0.path | basename).split('-')[1] }}"
+- name: Parse the installer version
+  debug:
+    msg: '{{ update_installer_version }}'
+
 - name: Find ST services
+  become: true
+  become_user: root
   find:
     paths: /etc/systemd/system
     patterns: "securetransport_*.service"
   register: st_services
-  changed_when: False
+  changed_when: true
 
-  
 - name: Stop ST services, if started
   become_user: root
   ansible.builtin.systemd_service:
@@ -43,22 +88,30 @@
   loop: "{{ st_services.files }}"
 
 - name: Wait for stop
+  become: true
+  become_user: "{{ ST_USER }}"
   ansible.builtin.wait_for:
     host: 0.0.0.0
     port: "{{ SSL_ADMIN_PORT }}"
     state: drained
-  
+
 - name: TM pid destroyed
+  become: true
+  become_user: "{{ ST_USER }}"
   ansible.builtin.wait_for:
     path: "{{ FILEDRIVEHOME }}/var/run/tm.pid"
     state: absent
 
 - name: DB pid destroyed
+  become: true
+  become_user: "{{ ST_USER }}"
   ansible.builtin.wait_for:
     path: "{{ FILEDRIVEHOME }}/var/run/db.pid"
     state: absent
 
 - name: ADMIN pid destroyed
+  become: true
+  become_user: "{{ ST_USER }}"
   ansible.builtin.wait_for:
     path: "{{ FILEDRIVEHOME }}/var/run/admin/tomcat.pid"
     state: absent
@@ -72,32 +125,26 @@
 #    format: gz
 #    force_archive: true
 
-- name: Find the name of UpdateStep1
-  ansible.builtin.find:
-    paths: "{{ INSTALLER_DIR }}/update/UpdateStep1/"
-    patterns: '*.jar'
-  register: step_1
-  
 - name: Find the name of UpdateStep2
+  become: true
+  become_user: "{{ ST_USER }}"
   ansible.builtin.find:
     paths: "{{ INSTALLER_DIR }}/update/UpdateStep2/"
     patterns: 'SecureTransport-Update-5.5*allOS.jar'
   register: step_2
 
-- name: print
-  debug:
-    msg: "{{ step_2 }}"
-
 - name: Execute the script to apply Step 1
+  become: true
+  become_user: "{{ ST_USER }}"
   command: "sh {{ AXWAY_HOME }}/Axway/update.sh -f {{ INSTALLER_DIR }}/update/UpdateStep1/"
   register: update_axway_installer
-  ignore_errors: true
-
-
+  when: update_installer_version is version(current_installer_version, '>')
+  
 - name: Execute the script to apply Step 2
+  become: true
+  become_user: "{{ ST_USER }}"
   command: "sh {{ AXWAY_HOME }}/Axway/update.sh -f {{ INSTALLER_DIR }}/update/UpdateStep2/"
   register: update_st_product
-
 
 - name: Start ST services, if stopped
   become_user: root
@@ -107,6 +154,5 @@
   loop: "{{ st_services.files }}"
 
 
-#- name: Execute the script
-#  command: "sh {{ step_2['files'][0]['path'] }}"
+
 ## tasks file for st_update

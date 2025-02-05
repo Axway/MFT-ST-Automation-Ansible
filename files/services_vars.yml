@@ -77,9 +77,9 @@ services_settings:
     svc_name: db
     edge_on: true
     core_on: false
-  monitor:
-    name: MONITOR service
-    pid_file: monitord.pid
-    svc_name: monitord
-    edge_on: true
-    core_on: true
+#  monitor:
+#    name: MONITOR service
+#    pid_file: monitord.pid
+#    svc_name: monitord
+#    edge_on: true
+#    core_on: true
