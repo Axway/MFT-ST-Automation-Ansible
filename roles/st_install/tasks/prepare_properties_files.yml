@@ -9,7 +9,7 @@
     - not is_installed.stat.exists
 
 
-- name: Find the name of the Axway_Installer
+- name: Find the name of the Axway_Installer properties
   ansible.builtin.find:
     paths: "{{ INSTALLER_DIR }}/Components/Configuration"
     patterns: 'Install_Axway_Installer*.properties'
@@ -26,7 +26,7 @@
     - not is_installed.stat.exists
 
 
-- name: Find the name of the ST_Installer
+- name: Find the name of the ST_Installer properties
   ansible.builtin.find:
     paths: "{{ INSTALLER_DIR }}/Components/Configuration/"
     patterns: 'Install_SecureTransport*.properties'
@@ -79,7 +79,7 @@
     line: "{{ item.option }} = {{ item.value }}"
   with_items:
     - { option: 'InstallationLogicalName', value: 'SecureTransport' }
-    - { option: 'InstallDir', value: '{{ AXWAY_HOME }}/Axway' }
+    - { option: 'InstallDir', value: '{{ AXWAY_INSTALLER_HOME }}' }
     - { option: 'AllAxwayComps32', value: 'false' }
     - { option: 'AllAxwayComps64', value: 'true' }
     - { option: 'IncludeFiles', value: '' }
@@ -106,7 +106,7 @@
     line: "{{ item.option }} = {{ item.value }}"
   with_items:
     - { option: 'Component.ACCEPT_GENERAL_CONDITIONS', value: 'Yes' }
-    - { option: 'Component.JavaHome', value: '{{ AXWAY_HOME }}/Axway/Java/linux-x86/{{ (file_to_copy.files.0.path |basename).rsplit(".",1)[0] }}' }
+    - { option: 'Component.JavaHome', value: '{{ AXWAY_INSTALLER_HOME }}/Java/linux-x86/{{ (file_to_copy.files.0.path |basename).rsplit(".",1)[0] }}' }
     - { option: 'SelectedBitArchitecture', value: '64' }
     - { option: 'InstMode', value: 'Install' }
     - { option: 'SecureTransport', value: 'true' }
@@ -129,7 +129,7 @@
     - { option: 'ServerDocker.LogicalName', value: 'ServerDocker' }
     - { option: 'ServerDocker.ParentName', value: 'SecureTransport' }
     - { option: 'ServerDocker.Title', value: 'ServerDocker' }
-    - { option: 'InstallDir', value: '{{ AXWAY_HOME }}/SecureTransport/' }
+    - { option: 'InstallDir', value: '{{ FILEDRIVEHOME }}' }
     - { option: 'userName', value: '{{ ST_USER }}' }
     - { option: 'isNonRootInstall', value: 'true' }
     - { option: 'EdgeDocker', value: 'false' }
@@ -197,7 +197,7 @@
     - inventory_hostname in groups["cores"]
     - not is_installed.stat.exists
   tags:
-    - st_install2
+    - st_install
 
 
 - name: Configure Install_SecureTransport_V5.5.properties for ST Edge

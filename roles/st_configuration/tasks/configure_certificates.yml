@@ -68,9 +68,6 @@
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates?fields=name&type=x509&usage=trusted&name=remote_ca
     method: GET
     validate_certs: false
-#    user: admin
-#    password: "{{ TMP_ADMIN_PWD }}"
-#    force_basic_auth: true
     return_content: true
     timeout: 60
     status_code: 200
@@ -128,9 +125,6 @@
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/configurations/options/Stfs.Encryption.CertAlias
     method: GET
     validate_certs: false
-#    user: admin
-#    password: "{{ TMP_ADMIN_PWD }}"
-#    force_basic_auth: true
     return_content: true
     status_code: 200
     timeout: 60
@@ -149,7 +143,6 @@
     - certificates
     - rest_api
 
-
 - name: Generate core certs that were not present
   vars:
     overwrite_status: false
@@ -157,9 +150,6 @@
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates
     method: POST
     validate_certs: false
-#    user: admin
-#    password: "{{ TMP_ADMIN_PWD }}"
-#    force_basic_auth: true
     return_content: true
     status_code: [200, 201]
     timeout: 60
@@ -183,7 +173,7 @@
     - rest_api
 
 
-- name: Re-generate core certs that were  present
+- name: Re-generate core certs that were present
   vars:
     overwrite_status: true
   ansible.builtin.uri:
@@ -279,9 +269,6 @@
     certificates/{{ ca_cert_id }}/operations?operation=export&format=pem&includePath=false"
     method: POST
     validate_certs: false
-#    user: admin
-#    password: "{{ TMP_ADMIN_PWD }}"
-#    force_basic_auth: true
     return_content: true
     status_code: [200]
     timeout: 60

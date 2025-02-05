@@ -46,8 +46,7 @@
   become_user: root
   vars:
     ansible_ssh_pipelining: true
-  tags:
-    - current
+
 - name: Wait until database is initialized before continuing
   ansible.builtin.wait_for:
     path: /var/lib/pgsql/16/data/pg_hba.conf
@@ -58,14 +57,12 @@
     enabled: true
   with_items:
     - postgresql-16
-  tags:
-    - current
+
 - name: Create ST database
   community.postgresql.postgresql_db:
     state: present
     name: "{{ DB_NAME }}"
     conn_limit: "-1"
-#    owner: "{{ DB_USER }}"
     encoding: 'UTF-8'
   become: true
   become_user: postgres
@@ -126,7 +123,7 @@
     - "{{ ST_DATA }}"
     - "{{ ST_FILETRACKING }}"
     - "{{ ST_SERVERLOG }}"
-- name: Create a new tablespace called st_data
+- name: Create the new tablespaces
   community.postgresql.postgresql_tablespace:
     name: "{{ item.name }}"
     owner: "{{ DB_USER }}"
@@ -135,16 +132,6 @@
   with_items: "{{ postgresql_tablespaces }}"
   become: true
   become_user: postgres
-
-- name: We want postgres to listen on the public IP
-  become: true
-  become_user: postgres
-  community.postgresql.postgresql_set:
-    name: "{{ item.name }}"
-    value: "{{ item.value }}"
-  with_items: "{{ postgresql_options }}"
-  notify: Restart postgres
-
 
 - name: Grant privs to the ST user on the tablespaces
   community.postgresql.postgresql_privs:
@@ -158,5 +145,13 @@
   become: true
   become_user: postgres
 
+- name: We want postgres to listen on the public IP
+  become: true
+  become_user: postgres
+  community.postgresql.postgresql_set:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+  with_items: "{{ postgresql_options }}"
+  notify: Restart postgres
 
 # tasks file for postgres-config

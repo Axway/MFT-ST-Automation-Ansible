@@ -1,9 +1,4 @@
 ---
-- name: Restart postgresql
-  ansible.builtin.service:
-    name: postgresql-16
-    state: restarted
-  when: pgconf.changed
 - name: Restart postgres
   ansible.builtin.service:
     name: postgresql-16

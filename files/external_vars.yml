@@ -1,28 +1,42 @@
 #### ST INSTALL PARAMS
 
+
+## PATHS
+
 # AXWAY_HOME is the path where SecureTransport should be installed under & holds the Axway Installer
 AXWAY_HOME: /opt/axway
-JRE_VERSION: jre11_u11.0.21_9_64
-
-
+# AXWAY_INSTALLER_HOME is the path where the Axway Installer will be installed, typically the same as AXWAY_HOME,
+# but you can change it below if needed
+AXWAY_INSTALLER_HOME: "{{ AXWAY_HOME }}"
 # This is a sandbox directory to hold the files we need to install, like the installer, JRE, taeh...
-INSTALLER_DIR: "{{ AXWAY_HOME }}/installer"
-
+# You can delete this folder after a successful install or keep the files as a backup
+INSTALLER_DIR: "{{ AXWAY_HOME }}/install_files"
+# The shared storage location for the user files (used on core servers)
 ST_MOUNTPOINT: /opt/axway/data
+# The parameters below are for setting up the shared storage NFS server. Specify network volume & export options
+share: "/nfs/share"
+options: "*(rw,sync,no_root_squash,no_wdelay)"
+permission: '0775'
+# The path to the ST application installation
 FILEDRIVEHOME: "{{ AXWAY_HOME }}/SecureTransport"
 
+
 #### ST CONFIG PARAMS
+# Licenses: please add the two license files to the /files directory here and adjust the names below accordingly
 CORE_LICENSE: files/licenses/ST Core Temp.txt
 FEATURES_LICENSE: files/licenses/ST2 Features Temp [PostgreSQL].txt
-TMP_ADMIN_PWD: Axway123!
-ca_password: Axway123!
+# This is the admin GUI port - port MUST be higher than 1024 on non-root installs
+SSL_ADMIN_PORT: 8444
+
+## OS SETTINGS
+# Please specify the user and group for the user that will run ST. You can specify root:root (with a UID and GID of 0)
+# for ST root installs
 ST_USER: axway
 ST_USER_UID: 2001
 ST_GROUP: axway
 ST_GROUP_GID: 2001
 
-# Port must be higher than 1024 on non-root installs
-SSL_ADMIN_PORT: 8444
+
 
 #### DB INSTALL PARAMS
 
@@ -36,14 +50,11 @@ skip_pgsql_install: False
 
 # DB_USER is the database username
 DB_USER: stuser
-# DB_USER_PASSWORD is the database password in plaintext. Use -c to encrypt it. Use -u to update it.
-DB_USER_PASSWORD: "Axway123!"
 # DB_NAME is the database name
 DB_NAME: ST_DB
 DB_PORT: 5432
 # If skip_pgsql_install is set to True, replace the variable below with the preinstalled DB hostname
 DB_HOST: "{{ hostvars['postgres_db']['node_hostname'] }}"
-
 
 # TABLESPACE LOCATIONS FOR THE ST DATABASE - ONLY USED WITH skip_pgsql_install: False
 ST_DATA: /var/lib/pgsql/16/data/pg_tblspc/st_data
@@ -51,10 +62,13 @@ ST_FILETRACKING: /var/lib/pgsql/16/data/pg_tblspc/st_filetracking
 ST_SERVERLOG: /var/lib/pgsql/16/data/pg_tblspc/st_serverlog
 
 
-# Specify network volume & export options
-share: "/nfs/share"
-options: "*(rw,sync,no_root_squash,no_wdelay)"
-permission: '0775'
+## Sensitive information
+# The passwords below will be used for the ST installation - this is just an example. For production please use
+# Ansible Vault or pass the passwords as parameters to the ansible-playbook command
+TMP_ADMIN_PWD: Axway123!
+ca_password: Axway123!
+# DB_USER_PASSWORD is the database password
+DB_USER_PASSWORD: "Axway123!"
 
 
 #### ST UPDATE PARAMS

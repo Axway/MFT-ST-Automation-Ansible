@@ -28,20 +28,6 @@
       tags:
         - rhel_prep
 
-    - name: Remove AV
-      become: true
-      ansible.builtin.dnf:
-        name:
-          - xarg
-        state: absent
-        update_cache: true
-      # this is not needed atm, but I will eventually create playbooks to work for all OS-es so this is just a prep - HS
-      when:
-        ansible_os_family == 'RedHat'
-      tags:
-        - rhel_prep
-
-
     - name: Create Axway group for non-root install
       become: true
       ansible.builtin.group:
@@ -75,7 +61,7 @@
         - "{{ INSTALLER_DIR }}"
         - "{{ INSTALLER_DIR }}/JRE"
         - "{{ INSTALLER_DIR }}/ServiceUnitFiles"
-        - "{{ AXWAY_HOME }}"
+        - "{{ AXWAY_INSTALLER_HOME }}"
       when:
         - ansible_os_family == 'RedHat'
       tags:

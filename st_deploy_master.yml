@@ -15,9 +15,6 @@
     - name: Store the hostname of each node as a variable
       ansible.builtin.set_fact:
         node_hostname: "{{ hostvars[inventory_hostname]['ansible_fqdn'] }}"
-    - name: Print the task start
-      ansible.builtin.debug:
-        msg: Starting to prepare the shared storage
     - name: Install and configure NFS server
       ansible.builtin.import_tasks: storage_install_tasks.yml
       when: inventory_hostname in groups["storage"]
@@ -60,15 +57,15 @@
     - st_install
     - st_configuration
 
-#- name: Configure ST Cluster
-#  hosts: ST_NODES
-#  become: true
-#  become_user: "{{ ST_USER }}"
-#  roles:
-#    - st_configuration
-#  vars_files:
-#    - files/external_vars.yml
-#    - files/services_vars.yml
+- name: Configure ST Cluster
+  hosts: ST_NODES
+  become: true
+  become_user: "{{ ST_USER }}"
+  roles:
+    - st_configuration
+  vars_files:
+    - files/external_vars.yml
+    - files/services_vars.yml
 
 #- name: Optimizing the ST nodes
 #  hosts: ST_NODES

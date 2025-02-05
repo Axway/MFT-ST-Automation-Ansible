@@ -1,0 +1,115 @@
+- name: Update customer specific configuration parameters on core
+  vars:
+    parameter_path: /values
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/configurations/options/{{ item.param_name }}
+    method: PATCH
+    validate_certs: false
+    return_content: true
+    status_code: [204]
+    timeout: 60
+    body_format: json
+    body: "{{ loop_patch_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
+  when:
+    - inventory_hostname == "core_primary"
+  tags:
+    - rest_api
+  loop:
+    "{{ customer_specific_config_core }}"
+
+- name: Get the array number of opt so we can remove it
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/configurations/options/UnsafePaths
+    method: GET
+    validate_certs: false
+    return_content: true
+    timeout: 60
+    status_code: [200]
+    body_format: json
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
+  when:
+    - inventory_hostname == "core_primary"
+  tags:
+    - rest_api
+  register: result
+
+- name: If /opt is in the array, go ahead and remove it
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/configurations/options/UnsafePaths
+    method: PATCH
+    validate_certs: false
+    return_content: true
+    status_code: [204]
+    timeout: 60
+    body_format: json
+    body: "{{ remove_patch_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
+  when:
+    - inventory_hostname == "core_primary"
+    - '"/opt/" in result.json["values"]'
+  tags:
+    - rest_api
+- name: Get the EncryptClass user class if it exists
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/userClasses?className=EncryptClass
+    method: GET
+    validate_certs: false
+    return_content: true
+    status_code: [200]
+    timeout: 60
+    body_format: json
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
+  when:
+    - inventory_hostname == "core_primary"
+  tags:
+    - rest_api
+  register: userClass
+
+
+- name: Create the EncryptClass if it doesn't exist
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/userClasses
+    method: POST
+    validate_certs: false
+    return_content: true
+    status_code: [201]
+    timeout: 60
+    body_format: json
+    body: "{{ userclass_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
+  when:
+    - inventory_hostname == "core_primary"
+    - userClass.json['resultSet']['returnCount'] == 0
+  tags:
+    - rest_api

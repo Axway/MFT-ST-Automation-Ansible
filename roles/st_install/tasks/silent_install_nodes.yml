@@ -15,7 +15,7 @@
 
 - name: Get the taeh from the ST server primary
   ansible.builtin.fetch:
-    src: "{{ AXWAY_HOME }}/SecureTransport/bin/taeh"
+    src: "{{ FILEDRIVEHOME }}/bin/taeh"
     dest: files/core/
     flat: true
   when: inventory_hostname == "core_primary"
@@ -90,7 +90,7 @@
 
 - name: Get the taeh from the ST edge primary
   ansible.builtin.fetch:
-    src: "{{ AXWAY_HOME }}/SecureTransport/bin/taeh"
+    src: "{{ FILEDRIVEHOME }}/bin/taeh"
     dest: files/edge/
     flat: true
   when: inventory_hostname == "edge_primary"

@@ -1,0 +1,116 @@
+- name: Check if the DMZ zone exists
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/zones/DMZ
+    method: HEAD
+    validate_certs: false
+    return_content: false
+    timeout: 60
+    status_code: [200, 404]
+    body_format: json
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
+  when:
+    - inventory_hostname == "core_primary"
+  register: dmz_zone
+  tags:
+    - rest_api
+
+- name: Create DMZ for streaming on core
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/zones
+    method: POST
+    validate_certs: false
+    return_content: true
+    status_code: [201]
+    timeout: 60
+    body_format: json
+    body: "{{ dmz_core_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
+  when:
+    - inventory_hostname == "core_primary"
+    - dmz_zone.status == 404
+  tags:
+    - rest_api
+    - DMZ
+
+- name: Update edge DMZ
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/zones/Private
+    method: PUT
+    validate_certs: false
+    return_content: true
+    status_code: [204]
+    timeout: 60
+    body_format: json
+    body: "{{ dmz_edge_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
+  when:
+    - inventory_hostname == "edge_primary" or inventory_hostname == "edge_secondary"
+  tags:
+    - rest_api
+    - DMZ
+- name: Configure the allowed ST servers
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/configurations/allowedSTServers
+    method: PATCH
+    validate_certs: false
+    user: admin
+    password: "{{ TMP_ADMIN_PWD }}"
+    status_code: 204
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
+    body_format: json
+    body: "{{ edge_patch_json }}"
+  when:
+    - inventory_hostname == "edge_primary"
+  tags:
+    - rest_api
+    - allowed
+
+- name: Configure the Streaming Trusted aliases
+  vars:
+    parameter_path: /values
+    parameter_value: remote_ca
+  ansible.builtin.uri:
+    url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/configurations/options/Streaming.TrustedAliases
+    validate_certs: false
+    method: PATCH
+    return_content: false
+    status_code: [204]
+    timeout: 120
+    body_format: json
+    body: "{{ stream_patch_json }}"
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+      idp_id: ST_IDP
+      Cookie: "{{ login.cookies_string }}"
+      Referer: Ansible
+      csrftoken: "{{ login.csrftoken }}"
+  when:
+    - inventory_hostname == "edge_primary" or inventory_hostname == "core_primary"
+  tags:
+    - check
+    - rest_api

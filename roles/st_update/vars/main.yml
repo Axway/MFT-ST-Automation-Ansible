@@ -1,3 +1,9 @@
 ---
-backup_filename: "backup-{{ inventory_hostname }}={{ current_st_version }}-{{ ansible_date_time.date }}.tar.gz"
+backup_filename: backup-{{ inventory_hostname }}-update_{{ current_st_version }}-{{ ansible_date_time.date }}.tar.gz
+
+# You can overwrite any of the variables set in the external vars file here, like so:
+
+# ST_USER: root
+# ST_USER_UID: 0
+# ST_GROUP: root
 # vars file for st_update
