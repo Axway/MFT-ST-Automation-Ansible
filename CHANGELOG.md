@@ -27,3 +27,6 @@
 - Added configuration to allow using a preinstalled/preconfigured DB
 - Updated the REST API requests to reuse the cookies and CSRF token upon login
 - Created tasks to deploy service unit files
+
+### Updates from 02/05/2025
+- Published a playbook (st_update.yml) and a role (st_update) to install an update for ST

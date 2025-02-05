@@ -17,9 +17,6 @@
     diff_st_version: "{{ ((update_version | to_datetime('%Y%m%d')) - (current_st_version | \
     to_datetime('%Y%m%d'))).days }}"
 
-- name: debug
-  debug:
-    msg: "{{ diff_st_version }}"
 - name: Alert if the host is on the same or newer version
   ansible.builtin.debug:
     msg: |
