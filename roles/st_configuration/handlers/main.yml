@@ -69,7 +69,7 @@
 - name: Wait for start
   ansible.builtin.wait_for:
     host: 0.0.0.0
-    port: 8444
+    port: '{{ SSL_ADMIN_PORT }}'
     delay: 100
     timeout: 600
 # handlers file for st_configuration

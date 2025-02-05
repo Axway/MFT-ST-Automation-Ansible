@@ -98,7 +98,7 @@
       ansible.builtin.service:
         name: firewalld
         state: stopped
-        enabled: False
+        enabled: false
 
     - name: Mount an NFS volume for shared folders
       ansible.posix.mount:

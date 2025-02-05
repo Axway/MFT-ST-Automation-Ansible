@@ -6,7 +6,7 @@
     dest: "/etc/systemd/system/securetransport_{{ item.value.svc_name }}.service"
     mode: '0644'
   loop:
-     "{{ services_settings | dict2items }}"
+    "{{ services_settings | dict2items }}"
   when:
     - inventory_hostname in groups["cores"] and item.value.core_on
   register: core_services
@@ -48,7 +48,7 @@
     enabled: true
     name: "{{ item | basename }}"
     daemon_reload: true
-  loop:  "{{ core_services.results | selectattr('dest', 'defined')  | map(attribute='dest') }}"
+  loop:  "{{ core_services.results | selectattr('dest', 'defined') | map(attribute='dest') }}"
   tags:
     - service_files
   when:
@@ -60,7 +60,7 @@
     enabled: true
     name: "{{ item | basename }}"
     daemon_reload: true
-  loop:  "{{ edge_services.results | selectattr('dest', 'defined')  | map(attribute='dest') }}"
+  loop:  "{{ edge_services.results | selectattr('dest', 'defined') | map(attribute='dest') }}"
   tags:
     - service_files
   when:

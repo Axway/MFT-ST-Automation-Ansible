@@ -1,13 +1,8 @@
-
-
 - name: Generate the internal CA
   ansible.builtin.uri:
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates
     method: POST
     validate_certs: false
-#    user: admin
-#    password: "{{ TMP_ADMIN_PWD }}"
-#    force_basic_auth: true
     return_content: true
     status_code: 201
     timeout: 60
@@ -47,9 +42,6 @@
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates?fields=name&usage=local
     method: GET
     validate_certs: false
-#    user: admin
-#    password: "{{ TMP_ADMIN_PWD }}"
-#    force_basic_auth: true
     return_content: true
     timeout: 60
     status_code: 200
@@ -198,9 +190,6 @@
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates
     method: POST
     validate_certs: false
-#    user: admin
-#    password: "{{ TMP_ADMIN_PWD }}"
-#    force_basic_auth: true
     return_content: true
     status_code: [200, 201]
     timeout: 60
@@ -231,9 +220,6 @@
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates
     method: POST
     validate_certs: false
-#    user: admin
-#    password: "{{ TMP_ADMIN_PWD }}"
-#    force_basic_auth: true
     return_content: true
     status_code: [200, 201]
     timeout: 60
@@ -264,9 +250,6 @@
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates
     method: POST
     validate_certs: false
-#    user: admin
-#    password: "{{ TMP_ADMIN_PWD }}"
-#    force_basic_auth: true
     return_content: true
     timeout: 60
     status_code: [200, 201]
@@ -328,9 +311,6 @@
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates
     method: POST
     validate_certs: false
-#    user: admin
-#    password: "{{ TMP_ADMIN_PWD }}"
-#    force_basic_auth: true
     return_content: true
     status_code: [200, 201]
     timeout: 60
@@ -366,9 +346,6 @@
     url: https://{{ hostvars[inventory_hostname]['ansible_fqdn'] }}:{{ SSL_ADMIN_PORT }}/api/v2.0/certificates
     method: POST
     validate_certs: false
-#    user: admin
-#    password: "{{ TMP_ADMIN_PWD }}"
-#    force_basic_auth: true
     return_content: true
     status_code: [200, 201]
     timeout: 60
