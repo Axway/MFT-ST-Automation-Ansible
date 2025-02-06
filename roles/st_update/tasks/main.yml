@@ -2,7 +2,7 @@
 - name: Get the current ST version
   become: true
   become_user: "{{ ST_USER }}"
-  ansible.builtin.command: "sh {{ AXWAY_HOME }}/display.sh -n SecureTransport"
+  ansible.builtin.command: "sh {{ AXWAY_INSTALLER_HOME }}/display.sh -n SecureTransport"
   register: current_st_version_output
   changed_when: "current_st_version_output.rc == 0"
 
@@ -31,7 +31,7 @@
 - name: Get the current Axway Installer version
   become: true
   become_user: "{{ ST_USER }}"
-  ansible.builtin.command: "sh {{ AXWAY_HOME }}/display.sh -n Axway_Installer"
+  ansible.builtin.command: "sh {{ AXWAY_INSTALLER_HOME }}/display.sh -n Axway_Installer"
   register: current_installer_version_output
   changed_when: "current_installer_version_output.rc == 0"
 
@@ -150,7 +150,7 @@
 - name: Execute the script to apply Step 1
   become: true
   become_user: "{{ ST_USER }}"
-  ansible.builtin.command: "sh {{ AXWAY_HOME }}/update.sh -f {{ INSTALLER_DIR }}/update/UpdateStep1/"
+  ansible.builtin.command: "sh {{ AXWAY_INSTALLER_HOME }}/update.sh -f {{ INSTALLER_DIR }}/update/UpdateStep1/"
   register: update_axway_installer
   when: update_installer_version is version(current_installer_version, '>')
   changed_when: "update_axway_installer.rc == 0"
@@ -158,7 +158,7 @@
 - name: Execute the script to apply Step 2
   become: true
   become_user: "{{ ST_USER }}"
-  ansible.builtin.command: "sh {{ AXWAY_HOME }}/update.sh -f {{ INSTALLER_DIR }}/update/UpdateStep2/"
+  ansible.builtin.command: "sh {{ AXWAY_INSTALLER_HOME }}/update.sh -f {{ INSTALLER_DIR }}/update/UpdateStep2/"
   register: update_st_product
   changed_when: "update_st_product.rc == 0"
   notify:
