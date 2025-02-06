@@ -32,3 +32,4 @@
 - Published a playbook (st_update.yml) and a role (st_update) to install an update for ST
 - Added a new variable (AXWAY_INSTALLER_HOME) so that the location of the Axway Installer can be changed if needed
 - Optimized the external_vars file & added notes 
+- Validated install with Rocky9
