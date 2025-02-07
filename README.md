@@ -45,53 +45,57 @@ To build at customer's sites, in production or using any sensitive information, 
 - Python 3.11 on the machine where ansible is installed
 - ansible & python prerequisites installed
 
-> These playbooks are written with:
+
+#### These playbooks are written and validated with:
 > 
-> ansible [core 2.14.3]
-> 
-> config file = ~/Library/CloudStorage/ansible.cfg
+> ansible [core 2.16.14]
 > 
 > configured module search path = ['~/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
+>
+>  config file = ~/MFT-ST-Automation-with-Ansible-example/ansible.cfg
 > 
->  ansible python module location = /Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/site-packages/ansible
+>  configured module search path = ['~/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
+> 
+>  ansible python module location = /usr/local/lib/python3.11/site-packages/ansible
 > 
 >  ansible collection location = ~/.ansible/collections:/usr/share/ansible/collections
 > 
->  executable location = /Library/Frameworks/Python.framework/Versions/3.11/bin/ansible
+>  executable location = /usr/local/bin/ansible
 > 
->  python version = 3.11.2 (v3.11.2:878ead1ac1, Feb  7 2023, 10:02:41) 
+>  python version = 3.11.11 (main, Dec  3 2024, 17:20:40) [Clang 16.0.0 (clang-1600.0.26.4)] (/usr/local/opt/python@3.11/bin/python3.11)
 > 
-> [Clang 13.0.0 (clang-1300.0.29.30)] (/Library/Frameworks/Python.framework/Versions/3.11/bin/python3.11)
+>  jinja version = 3.1.5
 > 
->  jinja version = 3.1.2
-> 
->  libyaml = True
+> libyaml = True
+
 
 ### Servers
 
 You need a total of 6 host machines to run these playbooks.
-All need to run RHEL 9
+All need to run RHEL 9, Rocky Linux 9, or RHEL 8
 
-> The release I have been testing with is:
+#### The release I have been testing with is:
 
 > NAME="Red Hat Enterprise Linux"
-
+>
 > VERSION="9.3 (Plow)"
-
+>
 > ID="rhel"
-
+>
 > ID_LIKE="fedora"
-
+>
 > VERSION_ID="9.3"
-
+>
 > "Red Hat Enterprise Linux 9.3 (Plow)
+> 
 ## 3. Before you begin
 
 ### Pull this repository
 
 ### Install Galaxy requirements
 
-`ansible-galaxy collection install -r galaxy-requirements.yml`
+<kbd>ansible-galaxy collection install -r galaxy-requirements.yml</kbd>
+
 
 ### Update inventory
 - Update the inventory file with your password and hostnames

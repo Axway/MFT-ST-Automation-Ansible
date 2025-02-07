@@ -33,3 +33,6 @@
 - Added a new variable (AXWAY_INSTALLER_HOME) so that the location of the Axway Installer can be changed if needed
 - Optimized the external_vars file & added notes 
 - Validated install with Rocky9
+
+### Updates from 02/07/2025
+- Updated README ansible versions & added RHEL disclaimer 
