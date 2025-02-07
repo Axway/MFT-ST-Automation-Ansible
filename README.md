@@ -38,6 +38,9 @@ To build at customer's sites, in production or using any sensitive information, 
 
 ## 2. Prerequistes
 
+> [!CAUTION]
+> Ansible 2.17 dropped support for Python 3.6, as a result, 2.16 will be the last version that works out of the box with RHEL 8
+
 - ansible [core 2.14.3]
 - Python 3.11 on the machine where ansible is installed
 - ansible & python prerequisites installed
