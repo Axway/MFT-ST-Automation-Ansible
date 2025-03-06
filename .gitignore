@@ -7,3 +7,4 @@
 /files/licenses/ST2*
 /files/log/ansible-deployment.log
 /files/download_links.yml
+/inventory-1100.ini

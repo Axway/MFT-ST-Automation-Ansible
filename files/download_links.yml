@@ -1,7 +1,21 @@
+# You MUST set the variable below to one of the following options:
+# artifactory
+# mount
+# s3
+# Depending on the option you chose, please scroll down and assign the needed variables
+#sources_location: mount
+#sources_location: artifactory
+sources_location: s3
 
+# If sources_location is set to s3, each node must be able to authenticate to the s3 bucket. You can either
+# create an AWS policy for the nodes to authenticate transparently, or push local credentials (access key & secret) to
+# each of the nodes. If you opt for the latter, set s3_local_credentials to True and specify the path to the file
+# in s3_credential_file. Otherwise, set s3_local_credentials to False
+s3_local_credentials: True
+s3_credential_file: ~/.aws/credentials
 st_install_file: "SecureTransport_5.5-20241219_Install_linux-x86-64_BN3217.zip"
 st_update_file: "SecureTransport_5.5-20250130_Update_allOS_BN3218.zip"
-ST_VERSION: "{{ st_install_file.split('_')[ 1 ] }}"
+
 # CONSTRUCT ST DOWNLOAD LINK
 # Please specify the location where you can download the install files from.
 # Note that depending on your internal organization's policy, the file download may require another protocol;
@@ -12,13 +26,28 @@ ST_VERSION: "{{ st_install_file.split('_')[ 1 ] }}"
 # IF YOUR WEBSERVER REQUIRES CREDENTIALS, OR FILES ARE LOCATED ELSEWHERE, ROLE TASKS NEED TO BE UPDATED
 artifactory: https://artifactory-ptx.ecd.axway.int/artifactory/securetransport-generic-preprod-sofi/5.5/
 #artifactory: your-webserver-address
-ST_DOWNLOAD_LINK: "{{ artifactory}}{{ st_install_file }}"
-ST_UPDATE_LINK: "{{ artifactory}}{{ st_update_file }}"
-plugins:
-  AZURE_FILE_PLUGIN: "{{ artifactory}}securetransport-plugins-site-azurefile-1.1.3-100.zip"
-  s3_PLUGIN: "{{ artifactory}}securetransport-plugins-site-s3-2.0.4-231.zip"
-  JMS_PLUGIN: "{{ artifactory}}securetransport-plugins-site-jms-1.0.6-73.zip"
-  AZURE_BLOB_PLUGIN: "{{ artifactory}}securetransport-plugins-site-azureblob-2.0.0-127.zip"
-  GOOGLE_CLOUD_PLUGIN: "{{ artifactory}}securetransport-plugins-site-googlecloudstorage-1.0.4-654.zip"
-  SHAREPOINT_PLUGIN: "{{ artifactory}}securetransport-plugins-site-sharepoint-2.0.2-124.zip"
-  SMB_PLUGIN: "{{ artifactory}}securetransport-plugins-site-smb-2.1.2-122.zip"
+
+# PLEASE SPECIFY A SERVER TO MOUNT WHERE THE ST FILES ARE AVAILABLE
+install_src: twoflower.lab.phx.axway.int
+install_src_share: /data/installs
+ST_UPDATE_LINK: "{{ ST_DOWNLOAD_SRC }}{{ st_update_file }}"
+site_plugins:
+  AZURE_FILE_PLUGIN: "securetransport-plugins-site-azurefile-2.0.3-270.zip"
+  s3_PLUGIN: "securetransport-plugins-site-s3-3.1.5-488.zip"
+  JMS_PLUGIN: "securetransport-plugins-site-jms-1.0.11-218.zip"
+  AZURE_BLOB_PLUGIN: "securetransport-plugins-site-azureblob-2.1.6-342.zip"
+  GOOGLE_CLOUD_PLUGIN: "securetransport-plugins-site-googlecloudstorage-1.0.8-811.zip"
+  SHAREPOINT_PLUGIN: "securetransport-plugins-site-sharepoint-2.0.9-321.zip"
+  SMB_PLUGIN: "securetransport-plugins-site-smb-2.1.6-283.zip"
+  GOOGLE_DRIVE_PLUGIN: "securetransport-plugins-site-googledrive-1.0.7-184.zip"
+  AS4_PLUGIN: "securetransport-plugins-site-as4-1.0.0-BETA.zip"
+  HADOOP_PLUGIN: "securetransport-plugins-site-hadoop-2.0.9-211.zip"
+  ONEDRIVE_PLUGIN: "securetransport-plugins-site-syncplicity-1.2.7-163.zip"
+  SYNCPLICITY_PLUGIN: "securetransport-plugins-site-onedrive-1.0.8-273.zip"
+authentication_plugins:
+  OAUTH2_PLUGIN: "securetransport-plugins-authentication-oauth2-2.0.3-2984.zip"
+  ADMIN_LDAP_PLUGIN: "securetransport-plugins-authentication-admin-ldap-1.0.4-451.zip"
+steps_plugins:
+  SET_FLOW_ATTRS: "securetransport-plugins-step-setflowattributes-1.0.2-131.zip"
+# DO NOT EDIT
+ST_VERSION: "{{ st_install_file.split('_')[ 1 ] }}"

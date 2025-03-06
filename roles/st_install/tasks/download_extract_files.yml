@@ -1,3 +1,79 @@
+- name: Setting a variable to construct the download link/location
+  ansible.builtin.set_fact:
+    ST_DOWNLOAD_LINK: "{{ artifactory }}{{ st_install_file }}"
+    ST_DOWNLOAD_SRC: "{{ artifactory }}"
+  when:
+    - sources_location == 'artifactory'
+  tags:
+    - st_install
+    - debug_install
+- name: Create installer mountpoint
+  become: true
+  ansible.builtin.file:
+    path: "{{ INSTALLER_DIR }}/installs"
+    owner: "{{ ST_USER }}"
+    group: "{{ ST_GROUP }}"
+    mode: '0750'
+    state: directory
+  when:
+    - ansible_os_family == 'RedHat'
+    - not is_installed.stat.exists
+    - sources_location == 'mount'
+  tags:
+    - rhel_prep
+- name: Mount an NFS volume for installer
+  become: true
+  become_user: root
+  ansible.posix.mount:
+    src: "{{ install_src }}:{{ install_src_share }}"
+    path: "{{ INSTALLER_DIR }}/installs"
+    opts: rw,vers=3,sync,actimeo=1,rsize=1048576,wsize=1048576
+    state: mounted
+    fstype: nfs
+  when:
+    - not is_installed.stat.exists
+    - sources_location == 'mount'
+  tags:
+    - rhel_prep
+    - debug
+- name: move aws credentials
+  ansible.builtin.copy:
+    src: "{{ s3_credential_file }}"
+    dest: "/home/{{ ST_USER }}/.aws/credentials"
+    owner: "{{ ST_USER }}"
+    group: "{{ ST_GROUP }}"
+    mode: '0755'
+  tags:
+    - before_exchange
+  when:
+    - sources_location == 's3'
+    - s3_local_credentials
+- name: GET installer from s3
+  amazon.aws.s3_object:
+    bucket: hrisy-demo-prod
+    object: "/st_installs/{{ st_install_file }}"
+    dest: "{{ INSTALLER_DIR }}/{{ st_install_file }}"
+    mode: get
+  when:
+    - sources_location == 's3'
+- name: Setting a variable to construct the download link/location
+  ansible.builtin.set_fact:
+    ST_DOWNLOAD_LINK: "{{ INSTALLER_DIR }}/installs/{{ st_install_file }}"
+    ST_DOWNLOAD_SRC: "{{ INSTALLER_DIR }}/installs/"
+  when:
+    - sources_location == 'mount'
+  tags:
+    - st_install
+    - debug_install
+- name: Setting a variable to construct the download link/location
+  ansible.builtin.set_fact:
+    ST_DOWNLOAD_LINK: "{{ INSTALLER_DIR }}/{{ st_install_file }}"
+    ST_DOWNLOAD_SRC: "{{ INSTALLER_DIR }}/"
+  when:
+    - sources_location == 's3'
+  tags:
+    - st_install
+    - debug_install
 - name: Download and extract the ST installer
   ansible.builtin.unarchive:
     src: "{{ ST_DOWNLOAD_LINK }}"

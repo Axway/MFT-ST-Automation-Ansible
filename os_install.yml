@@ -4,6 +4,7 @@
   vars_files:
     - files/external_vars.yml
     - files/services_vars.yml
+    - files/download_links.yml
   pre_tasks:
     - name: Install dependencies
       become: true
@@ -20,6 +21,7 @@
           - nfs4-acl-tools
           - python3-lxml
           - python3-psycopg2
+          - python3-pip
         state: present
         update_cache: true
       # this is not needed atm, but I will eventually create playbooks to work for all OS-es so this is just a prep - HS
@@ -27,6 +29,13 @@
         ansible_os_family == 'RedHat'
       tags:
         - rhel_prep
+    - name: Install python packages needed for s3
+      ansible.builtin.pip:
+        name:
+          - botocore
+          - boto3
+      when:
+        - sources_location == 's3'
 
     - name: Create Axway group for non-root install
       become: true
@@ -62,6 +71,7 @@
         - "{{ INSTALLER_DIR }}/JRE"
         - "{{ INSTALLER_DIR }}/ServiceUnitFiles"
         - "{{ AXWAY_INSTALLER_HOME }}"
+        - "/home/{{ ST_USER }}/.aws"
       when:
         - ansible_os_family == 'RedHat'
       tags:

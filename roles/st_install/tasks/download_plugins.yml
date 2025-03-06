@@ -1,6 +1,16 @@
-- name: Download and extract the Azure FileStorage plugin
+- name: Simple GET operation
+  amazon.aws.s3_object:
+    bucket: hrisy-demo-prod
+    object: "/st_installs/{{ item.value }}"
+    dest: "{{ INSTALLER_DIR }}/{{ item.value }}"
+    mode: get
+  when:
+    - sources_location == 's3'
+    - inventory_hostname in groups["cores"]
+  with_dict: "{{ authentication_plugins | combine(site_plugins) | combine(steps_plugins) }}"
+- name: Download and extract the transfer site plugins
   ansible.builtin.unarchive:
-    src: "{{ item.value }}"
+    src: "{{ ST_DOWNLOAD_SRC }}{{ item.value }}"
     dest: "{{ FILEDRIVEHOME }}/plugins/transferSites/"
     mode: '0755'
     group: "{{ ST_GROUP }}"
@@ -12,4 +22,34 @@
   tags:
     - st_install
     - axway_lab_specific
-  loop: "{{ plugins | dict2items }}"
+  loop: "{{ site_plugins | dict2items }}"
+- name: Download and extract the authentication plugins
+  ansible.builtin.unarchive:
+    src: "{{ ST_DOWNLOAD_SRC }}{{ item.value }}"
+    dest: "{{ FILEDRIVEHOME }}/plugins/authentication/"
+    mode: '0755'
+    group: "{{ ST_GROUP }}"
+    owner: "{{ ST_USER }}"
+    validate_certs: false
+    remote_src: true
+  when:
+    - inventory_hostname in groups["cores"]
+  tags:
+    - st_install
+    - axway_lab_specific
+  loop: "{{ authentication_plugins | dict2items }}"
+- name: Download and extract the routing step plugins
+  ansible.builtin.unarchive:
+    src: "{{ ST_DOWNLOAD_SRC }}{{ item.value }}"
+    dest: "{{ FILEDRIVEHOME }}/plugins/routingSteps/"
+    mode: '0755'
+    group: "{{ ST_GROUP }}"
+    owner: "{{ ST_USER }}"
+    validate_certs: false
+    remote_src: true
+  when:
+    - inventory_hostname in groups["cores"]
+  tags:
+    - st_install
+    - axway_lab_specific
+  loop: "{{ steps_plugins | dict2items }}"

@@ -19,6 +19,9 @@
 
 - name: Alert if the host is on the same or newer version
   ansible.builtin.debug:
+    msg: "{{ diff_st_version }}"
+- name: Alert if the host is on the same or newer version
+  ansible.builtin.debug:
     msg: |
       'Current ST version ({{ current_st_version }}) is the same or newer than the update you are trying to install.
       Ending the script'.
@@ -64,6 +67,8 @@
     group: "{{ ST_GROUP }}"
     validate_certs: false
     remote_src: true
+  tags:
+    - download_update
 
 
 - name: Find the name of UpdateStep1
@@ -138,6 +143,8 @@
     mode: '0755'
     format: gz
     force_archive: true
+  tags:
+    - backup
 
 - name: Find the name of UpdateStep2
   become: true
