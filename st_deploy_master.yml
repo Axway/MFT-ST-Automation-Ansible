@@ -1,10 +1,10 @@
- # The playbook builds an EC deployment with PostgreSQL EC, 2 cores, 2 edges and a shared storage
- # This is intended to be used just as a reference and an example.
- # If you are using this to deploy SecureTransport, please review, validate and test all tasks and roles.
- # This is provided as-is, and you should run it at your own risk.
- # This is provided in order to provide usage examples and Axway cannot guarantee it is fit for production,
- # or provide ongoing support for it.
- # Author: Hristina Stoykova <hstoykova@axway.com>
+# The playbook builds an EC deployment with PostgreSQL EC, 2 cores, 2 edges and a shared storage
+# This is intended to be used just as a reference and an example.
+# If you are using this to deploy SecureTransport, please review, validate and test all tasks and roles.
+# This is provided as-is, and you should run it at your own risk.
+# This is provided in order to provide usage examples and Axway cannot guarantee it is fit for production,
+# or provide ongoing support for it.
+# Author: Hristina Stoykova <hstoykova@axway.com>
 
 - name: Build a SecureTransport 2 x 2 EC
   hosts: st_deployment

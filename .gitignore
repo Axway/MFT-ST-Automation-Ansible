@@ -3,8 +3,17 @@
 /files/licenses/ST2 Features Temp [PostgreSQL].txt
 .idea
 /inventory.ini
-/env/
-/files/licenses/ST2*
-/files/log/ansible-deployment.log
-/files/download_links.yml
-/inventory-1100.ini
+/outdated/testing.yml
+/testing/
+/test_vars.yml
+/test*.yml
+/outdated/core/taeh
+/outdated/edge/taeh
+/testing2.yml
+/inventory.yaml
+/st_configuration-copy.yml
+/.env
+/outdated/
+/files/licenses/ST*
+/files/licenses/ST2 Features Temp [PostgreSQL].txt
+/inventory*

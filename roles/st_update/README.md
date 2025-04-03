@@ -1,38 +1,56 @@
-Role Name
+st_update
 =========
+This Ansible role updates Axway SecureTransport to the latest version. It performs various tasks such as checking the current version, downloading the update, and applying the update.
 
-A brief description of the role goes here.
 
 Requirements
 ------------
+- Ansible 2.9+
+- Access to the SecureTransport server
+- Proper permissions to execute commands and manage services on the SecureTransport server
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+> [!NOTE]
+> If your ST host(s) are running RHEL 8, the maximum Ansible version is 2.16
 
-Role Variables
---------------
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+## Role Variables
 
-Dependencies
-------------
+- `sources_location`: Location of the sources (e.g., 'artifactory').
+- `artifactory`: URL of the artifactory to download the update from.
+- `ST_USER`: User to run the SecureTransport commands.
+- `AXWAY_INSTALLER_HOME`: Path to the Axway installer home directory.
+- `st_update_file`: Filename of the SecureTransport update.
+- `st_backup_location`: Directory to store backups.
+- `INSTALLER_DIR`: Directory to store the update files.
+- `SSL_ADMIN_PORT`: SSL admin port for SecureTransport.
+- `FILEDRIVEHOME`: Home directory for the file drive.
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+## Dependencies
 
-Example Playbook
-----------------
+None.
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+## Example Playbook
 
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
+```yaml
+- hosts: ST_NODES
+  become: yes
+  roles:
+    - role: st_update
+      vars:
+        sources_location: "artifactory"
+        artifactory: "https://artifactory.your-company.com"
+        ST_USER: "axway"
+        AXWAY_INSTALLER_HOME: "/opt/axway/"
+        st_update_file: "SecureTransport_5.5-20250327_Update_allOS_BN3226.zip"
+        st_backup_location: "/opt/axway/backups"
+        INSTALLER_DIR: "/opt/axway/installer"
+        SSL_ADMIN_PORT: 444
+        FILEDRIVEHOME: "/opt/axway/SecureTransport"
+```
 
-License
--------
+Or you can use the sample file provided, [st_update.yml](../../st_update.yml)
 
-BSD
+## License
 
-Author Information
-------------------
+MIT
 
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).

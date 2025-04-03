@@ -8,6 +8,7 @@
 These playbooks are intended to be used:
 * To deploy in TEST environments
 * As a sample 
+* To update existing ST deployments 
 
 They have not been tested for production purposes. 
 Use them at your own risk and make sure to validate all plays and tasks before deploying elsewhere.
@@ -29,6 +30,8 @@ When all plays  run, they will install and configure SecureTransport Enterprise 
 - Additional configuration such as repository encryption
 - Base ST tuning
 
+Additionally, you can opt to run the st_update playbook to update your existing install
+
 ### Security
 
 These configuration files and plays all use plain text passwords and do not encrypt sensitive data for demonstration purposes.
@@ -36,7 +39,7 @@ These configuration files and plays all use plain text passwords and do not encr
 To build at customer's sites, in production or using any sensitive information, you must update the playbooks to use Ansible Vault
 
 
-## 2. Prerequistes
+## 2. Prerequisites
 
 > [!CAUTION]
 > Ansible 2.17 dropped support for Python 3.6, as a result, 2.16 will be the last version that works out of the box with RHEL 8
@@ -68,10 +71,9 @@ To build at customer's sites, in production or using any sensitive information, 
 > 
 > libyaml = True
 
-
 ### Servers
 
-You need a total of 6 host machines to run these playbooks.
+You need a total of 6 host machines to run the installation playbooks.
 All need to run RHEL 9, Rocky Linux 9, or RHEL 8
 
 #### The release I have been testing with is:
@@ -92,19 +94,22 @@ All need to run RHEL 9, Rocky Linux 9, or RHEL 8
 
 ### Pull this repository
 
-### Install Galaxy requirements
+### Install Galaxy and Python3 requirements
 
 <kbd>ansible-galaxy collection install -r galaxy-requirements.yml</kbd>
+
+<kbd>pip install -r requirements.txt</kbd>
 
 
 ### Update inventory
 - Update the inventory file with your password and hostnames
-- rename the sample file to inventory.ini
+- rename the sample file to inventory.ini or pass it to ansible with -i my-filename.ini
 
 ### Update the variables
 
 Open the file `files/external_vars.yml` and update the variables with all relevant information
 Open the file `files/services_vars.yml` and  update the values to indicate which services you want to enable; where; and how much memory to allocate
+Open the file `files/download_links.yml` and  update the values to indicate which files to use for install/update and where are they located
 
 ### Upload your licenses
 
@@ -125,6 +130,11 @@ The list of playbooks and roles that will run by default is:
 - `st_configuration` [role]: Configures streaming, synchronization, and ST initial configuration
 - `st_tuning`[role]: Applies the base ST tuning (memory allocation, c3p0 and relevant server configuration parameters)
 
+Additionally, if you want to use the update role:
+
+- `st_update`[role]: Applies the specified ST update
+
+
 ## 4. Build all
 
 
@@ -134,6 +144,11 @@ Run this to install
 ansible-playbook st_deploy_master.yml
 ```
 
+Run this to update
+
+```bash
+ansible-playbook st_update.yml
+```
 
 It will connect to the configured servers and install all the software. It will also start the appropriate services.
 

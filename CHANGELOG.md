@@ -36,3 +36,10 @@
 
 ### Updates from 02/07/2025
 - Updated README ansible versions & added RHEL disclaimer 
+
+### Updates from 04/03/2025
+- Added pipelining to the ansible.cfg to enable SSH session reuse
+- Updated requirements.txt and galaxy-requirements.yml
+- Fixed Edges network zone configuration in the templates
+- Fixed a typo in the SSH_JAVA_OPTS section of STStartScriptsConfig
+- updated st_update role and added README documentation

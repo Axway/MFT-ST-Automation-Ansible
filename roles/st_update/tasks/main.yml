@@ -1,4 +1,11 @@
 ---
+- name: Setting a variable to construct the download link/location
+  ansible.builtin.set_fact:
+    ST_DOWNLOAD_SRC: "{{ artifactory }}"
+  when:
+    - sources_location == 'artifactory'
+  tags:
+    - st_install
 - name: Get the current ST version
   become: true
   become_user: "{{ ST_USER }}"
@@ -85,22 +92,33 @@
 
 - name: Find ST services
   become: true
-  become_user: root
+  become_user: "{{ ST_USER }}"
   ansible.builtin.find:
     paths: /etc/systemd/system
     patterns: "securetransport_*.service"
   register: st_services
   changed_when: st_services.examined > 0
 
-    
+
 - name: Stop ST services, if started
   become: true
-  become_user: root
+  become_user: "{{ ST_USER }}"
   ansible.builtin.systemd_service:
     name: "{{ item.path | basename }}"
     state: stopped
   loop: "{{ st_services.files }}"
   ignore_errors: true
+  register: ignore_errors_register
+
+- name: Stop DB service, if still running
+  become: true
+  become_user: "{{ ST_USER }}"
+  ansible.builtin.command: "sh {{ FILEDRIVEHOME }}/bin/stop_all -f"
+  args:
+    chdir: "{{ FILEDRIVEHOME }}/bin/"
+  register: stop_all
+  changed_when: "stop_all.rc == 0"
+
 
 - name: Wait for stop
   become: true
@@ -145,14 +163,6 @@
     force_archive: true
   tags:
     - backup
-
-- name: Find the name of UpdateStep2
-  become: true
-  become_user: "{{ ST_USER }}"
-  ansible.builtin.find:
-    paths: "{{ INSTALLER_DIR }}/update/UpdateStep2/"
-    patterns: 'SecureTransport-Update-5.5*allOS.jar'
-  register: step_2
 
 - name: Execute the script to apply Step 1
   become: true
