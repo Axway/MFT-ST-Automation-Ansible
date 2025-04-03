@@ -17,18 +17,18 @@ st_install_file: "SecureTransport_5.5-20241219_Install_linux-x86-64_BN3217.zip"
 st_update_file: "SecureTransport_5.5-20250130_Update_allOS_BN3218.zip"
 
 # CONSTRUCT ST DOWNLOAD LINK
-# Please specify the location where you can download the install files from.
+# Please specify the location where you can download the installation files from.
 # Note that depending on your internal organization's policy, the file download may require another protocol;
 # or credentials to download. This is an example for a simple HTTP download.
 
 
 # PLEASE SPECIFY A WEBSERVER TO DOWNLOAD THE INSTALLERS FROM. NOTE THAT THIS WILL ONLY WORK WITHOUT CREDENTIALS.
 # IF YOUR WEBSERVER REQUIRES CREDENTIALS, OR FILES ARE LOCATED ELSEWHERE, ROLE TASKS NEED TO BE UPDATED
-artifactory: https://artifactory-ptx.ecd.axway.int/artifactory/securetransport-generic-preprod-sofi/5.5/
+artifactory: https://artifactory.mycompany.com
 #artifactory: your-webserver-address
 
 # PLEASE SPECIFY A SERVER TO MOUNT WHERE THE ST FILES ARE AVAILABLE
-install_src: twoflower.lab.phx.axway.int
+install_src: my-server-fqdn
 install_src_share: /data/installs
 ST_UPDATE_LINK: "{{ ST_DOWNLOAD_SRC }}{{ st_update_file }}"
 site_plugins:
