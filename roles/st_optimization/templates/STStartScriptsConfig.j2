@@ -32,9 +32,9 @@ TM_JAVA_OPTS="-DStreaming.numberOfConnections=20 $TM_JAVA_OPTS"
 SSH_JAVA_OPTS="-XX:MaxDirectMemorySize=512M $SSH_JAVA_OPTS"
 SSH_JAVA_OPTS="-DsshTransferThreads=256 $SSH_JAVA_OPTS"
 SSH_JAVA_OPTS="-DsshAcceptThreads=256 $SSH_JAVA_OPTS"
-SSH_JAVA_OPTS="-DrecvBufferSize=65535 bytes $SSH_JAVA_OPTS"
-SSH_JAVA_OPTS="-DsendBufferSize=65535 bytes $SSH_JAVA_OPTS"
-SSH_JAVA_OPTS="-Dssh.maxWindowSpace=12582912 bytes $SSH_JAVA_OPTS"
+SSH_JAVA_OPTS="-DrecvBufferSize=65535 $SSH_JAVA_OPTS"
+SSH_JAVA_OPTS="-DsendBufferSize=65535 $SSH_JAVA_OPTS"
+SSH_JAVA_OPTS="-Dssh.maxWindowSpace=12582912 $SSH_JAVA_OPTS"
 {% endif %}
 
 
