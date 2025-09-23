@@ -1,3 +1,8 @@
 ---
-
+AXWAY_INSTALLER_HOME: /opt/axway/
+#ST_USER: root
+#ST_USER_UID: 0
+#ST_GROUP: root
+#ST_GROUP_GID: 0
+#SSL_ADMIN_PORT: 444
 # defaults file for st_update

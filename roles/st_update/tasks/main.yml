@@ -1,11 +1,30 @@
 ---
-- name: Setting a variable to construct the download link/location
+- name: Install Core License
+  ansible.builtin.copy:
+    src: "{{ CORE_LICENSE }}"
+    dest: "{{ FILEDRIVEHOME }}/conf/filedrive.license"
+    owner: "{{ ST_USER }}"
+    group: "{{ ST_GROUP }}"
+    mode: '0755'
+
+- name: Install Features License
+  ansible.builtin.copy:
+    src: "{{ FEATURES_LICENSE }}"
+    dest: "{{ FILEDRIVEHOME }}/conf/st.license"
+    owner: "{{ ST_USER }}"
+    group: "{{ ST_GROUP }}"
+    mode: '0755'
+
+- name: Setting a variable to construct the download link/location if source is artifactory
   ansible.builtin.set_fact:
     ST_DOWNLOAD_SRC: "{{ artifactory }}"
   when:
     - sources_location == 'artifactory'
   tags:
     - st_install
+
+
+
 - name: Get the current ST version
   become: true
   become_user: "{{ ST_USER }}"
@@ -62,7 +81,18 @@
     - "{{ st_backup_location }}"
     - "{{ INSTALLER_DIR }}/update"
 
+- name: Print purge output
+  ansible.builtin.debug:
+    msg: "{{ st_backup_location }}/{{ backup_filename }}"
+- name: Download and extract the ST Update from Axway
+  ansible.builtin.include_tasks: download_from_axway.yml
+  when: sources_location == 'axway'
 
+- name: Set the link when it is already downloaded from Axway
+  ansible.builtin.set_fact:
+    ST_UPDATE_LINK: "{{ INSTALLER_DIR }}/update/{{ artifact_filename }}"
+  when:
+    - sources_location == 'axway'
 - name: Download and extract the ST Update
   become: true
   become_user: "{{ ST_USER }}"
@@ -76,6 +106,7 @@
     remote_src: true
   tags:
     - download_update
+
 
 
 - name: Find the name of UpdateStep1
@@ -149,14 +180,65 @@
     path: "{{ FILEDRIVEHOME }}/var/run/admin/tomcat.pid"
     state: absent
 
+- name: Clean up old update files
+  become: true
+  become_user: "{{ ST_USER }}"
+  ansible.builtin.command: "sh {{ AXWAY_INSTALLER_HOME }}/purge.sh -k 1"
+  args:
+    chdir: "{{ AXWAY_INSTALLER_HOME }}/"
+  register: purge_output
+  changed_when: "purge_output.rc == 0"
+
+- name: Print purge output
+  ansible.builtin.debug:
+    msg: "{{ st_backup_location }}/{{ backup_filename }}"
+
+- name: Find PostgreSQL log files
+  ansible.builtin.find:
+    paths: "{{ FILEDRIVEHOME }}/var/logs"
+    patterns: "postgresql-*.log"
+    file_type: file
+  register: pg_logs
+
+#- name: Find rotated log files
+#  ansible.builtin.find:
+#    paths: "{{ FILEDRIVEHOME }}/var/db/hist/logs"
+#    patterns: "*"
+#    file_type: file
+#  register: rotated_logs
+#
+
+#- name: Archive PostgreSQL log files with today's date
+#  ansible.builtin.archive:
+#    path: "{{ pg_logs.files | map(attribute='path') | list }}"
+#    dest: "{{ st_backup_location }}/postgresql_logs_{{ ansible_date_time.date }}.tar.gz"
+#    format: gz
+#    remove: yes   # remove original files after archiving
+#  when: pg_logs.matched > 0
+#
+#
+#- name: Archive rotated log files with today's date
+#  ansible.builtin.archive:
+#    path: "{{ rotated_logs.files | map(attribute='path') | list }}"
+#    dest: "{{ st_backup_location }}/rotated_logs_{{ ansible_date_time.date }}.tar.gz"
+#    format: gz
+#    remove: yes   # remove original files after archiving
+#  when: rotated_logs.matched > 0
+
+
+#- name: End the playbook if the host is on the same or newer version
+#  ansible.builtin.meta: end_host
+
 - name: Compress Directory contents
   become: true
   become_user: "{{ ST_USER }}"
   community.general.archive:
-    path: /opt/axway
+    path: "{{ AXWAY_INSTALLER_HOME }}"
     exclude_path:
       - "{{ st_backup_location }}"
       - "{{ INSTALLER_DIR }}"
+      - "{{ AXWAY_INSTALLER_HOME }}/installer"
+      - "{{ AXWAY_INSTALLER_HOME }}/data"
     dest: "{{ st_backup_location }}/{{ backup_filename }}"
     mode: '0755'
     format: gz
